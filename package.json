@@ -1,0 +1,46 @@
+{
+  "name": "@rurino/core",
+  "version": "0.0.1",
+  "type": "module",
+  "description": "Core utilities for Megumi.",
+  "scripts": {
+    "build": "rimraf dist && tsc",
+    "watch": "tsc -w"
+  },
+  "main": "dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "lodash": "^4.17.21",
+    "yaml": "^2.3.4"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.14.202",
+    "eslint": "^8.56.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.1.3",
+    "postcss-cli": "^11.0.0",
+    "prettier": "^3.2.4",
+    "rimraf": "^5.0.5",
+    "typescript": "^5.3.3",
+    "typescript-eslint": "^7.0.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KCFindstr/Megumi-core.git"
+  },
+  "keywords": [
+    "lyrics",
+    "megumi"
+  ],
+  "author": "KCFindstr",
+  "license": "MIT",
+  "exports": {
+    "./*": "./dist/*.js"
+  },
+  "bugs": {
+    "url": "https://github.com/KCFindstr/Megumi-core/issues"
+  },
+  "homepage": "https://github.com/KCFindstr/Megumi-core#readme"
+}
