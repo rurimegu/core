@@ -21,7 +21,7 @@ export function DeserializeYaml(data: string): any {
 export function Gzip(data: ISerializable): Promise<Blob> {
   const ds = new CompressionStream('gzip');
   const blob = new Blob([JSON.stringify(data.serialize())]);
-  let decompressedStream = blob.stream().pipeThrough(ds);
+  const decompressedStream = blob.stream().pipeThrough(ds);
   return new Response(decompressedStream).blob();
 }
 

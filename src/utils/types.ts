@@ -5,7 +5,9 @@ export function GetValue<T>(provider: IProviderOrValue<T>): T {
     ? (provider as IProvider<T>)()
     : provider;
 }
-export function NoopFn() {}
+export function NoopFn() {
+  return;
+}
 export type Type<T> = new (...args: any[]) => T;
 /** Allows cloning the object completely, including ID info. */
 export interface IClonable<T> {
@@ -19,3 +21,4 @@ export interface ICopyable<T> {
 export interface IWithId {
   get id(): string;
 }
+export type Constructor<T> = new (...args: any[]) => T;
