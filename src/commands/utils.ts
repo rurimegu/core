@@ -1,6 +1,6 @@
 import { runInAction } from 'mobx';
 import { RedoQueue } from '../utils/ds';
-import { Command } from './command';
+import { Command } from '.';
 import { ValueError } from '../utils/error';
 import { IProviderOrValue } from '../utils/types';
 

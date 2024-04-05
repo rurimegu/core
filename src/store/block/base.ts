@@ -22,7 +22,7 @@ import {
   CommandSet,
   SetBlockEndCommand,
   SetBlockStartCommand,
-} from '../../commands/command';
+} from '../../commands';
 import { Bisect } from '../../utils/math';
 import { IWithId } from '../../utils/types';
 import { SMALL_DS_THRESHOLD } from '../../utils/constants';

@@ -200,6 +200,9 @@ export class TimingRange implements ISerializable {
 export class FloatRange implements ISerializable {
   public static readonly INVALID = new FloatRange();
   public static readonly FULL = new FloatRange(-Infinity, Infinity);
+  public static readonly EqualityComparer = (a: FloatRange, b: FloatRange) => {
+    return ApproxLeq(a.start, b.start) && ApproxLeq(a.end, b.end);
+  };
 
   @observable start: number;
   @observable end: number;
