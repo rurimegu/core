@@ -17,6 +17,7 @@
   },
   "devDependencies": {
     "@types/lodash": "^4.14.202",
+    "@types/web": "^0.0.142",
     "eslint": "^8.56.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.1.3",
