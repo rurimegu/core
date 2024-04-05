@@ -5,7 +5,7 @@ module.exports = {
     sourceType: 'module',
   },
   extends: [
-    'plugin:@typescript-eslint/recommended-type-checked',
+    'plugin:@typescript-eslint/recommended',
     'prettier',
     'plugin:prettier/recommended',
   ],
