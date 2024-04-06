@@ -44,6 +44,11 @@ export function Diff<T>(a: T[], b: T[]): [T[], T[]] {
   return [b.filter((i) => !setA.has(i)), a.filter((i) => !setB.has(i))];
 }
 
+export function Intersect<T>(a: T[], b: T[]): T[] {
+  const setA = new Set(a);
+  return b.filter((i) => setA.has(i));
+}
+
 export class Color implements ISerializable {
   public static WHITE = new Color(255, 255, 255);
   public static BLACK = new Color(0, 0, 0);
