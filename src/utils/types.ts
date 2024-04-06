@@ -8,7 +8,6 @@ export function GetValue<T>(provider: IProviderOrValue<T>): T {
 export function NoopFn() {
   return;
 }
-export type Type<T> = new (...args: any[]) => T;
 /** Allows cloning the object completely, including ID info. */
 export interface IClonable<T> {
   clone(): T;
@@ -22,3 +21,7 @@ export interface IWithId {
   get id(): string;
 }
 export type Constructor<T> = new (...args: any[]) => T;
+export interface IWithText {
+  get text(): string;
+  set text(value: string);
+}

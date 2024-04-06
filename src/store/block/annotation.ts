@@ -9,7 +9,7 @@ import {
 import { Timing } from '../range';
 import { DataError } from '../../utils/error';
 import { SplitWords } from '../../utils/string';
-import { IClonable, ICopyable } from '../../utils/types';
+import { IClonable, ICopyable, IWithText } from '../../utils/types';
 import {
   BlockBase,
   BlockData,
@@ -18,7 +18,6 @@ import {
   IMergable,
   IResizeAction,
   ITimingMutableBlock,
-  IWithText,
   ParentBlockBase,
   ParentOptionalTextData,
   ResizeBlockCmd,

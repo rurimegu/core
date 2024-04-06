@@ -38,7 +38,16 @@
   "author": "KCFindstr",
   "license": "MIT",
   "exports": {
-    "./*": "./dist/*.js"
+    "./utils": {
+      "import": "./dist/utils/index.js",
+      "require": "./dist/utils/index.js",
+      "types": "./dist/utils/index.d.ts"
+    },
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
   },
   "bugs": {
     "url": "https://github.com/KCFindstr/Megumi-core/issues"

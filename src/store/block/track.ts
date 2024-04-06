@@ -5,10 +5,10 @@ import {
   BlockType,
   BlockBase,
   BlockDataHelpers,
-  IWithText,
   ParentBlockBase,
   ParentWithTextData,
 } from './base';
+import { IWithText } from '../../utils/types';
 
 export type TrackBlock = LyricsTrack;
 

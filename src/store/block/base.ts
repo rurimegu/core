@@ -24,9 +24,8 @@ import {
   SetBlockStartCommand,
 } from '../../commands';
 import { Bisect } from '../../utils/math';
-import { IWithId } from '../../utils/types';
 import { SMALL_DS_THRESHOLD } from '../../utils/constants';
-import { Constructor } from '../../utils/types';
+import { Constructor, IWithText, IWithId } from '../../utils/types';
 
 export enum BlockType {
   Unknown = 'Unknown',
@@ -34,11 +33,6 @@ export enum BlockType {
   LyricsTrack = 'LyricsTrack',
   Tracks = 'Tracks',
   Annotation = 'Annotation',
-}
-
-export interface IWithText {
-  get text(): string;
-  set text(value: string);
 }
 
 export interface IMergable<T> {

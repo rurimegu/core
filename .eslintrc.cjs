@@ -16,6 +16,7 @@ module.exports = {
   ignorePatterns: ['.eslintrc.cjs', 'build.js', '*.config.ts', '*.config.js'],
   rules: {
     eqeqeq: 'warn',
+    'no-duplicate-imports': 'warn',
     'no-return-await': 'warn',
     'no-implicit-coercion': 'warn',
     'linebreak-style': ['error', 'unix'],
