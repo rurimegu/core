@@ -80,14 +80,21 @@ export class TagsStore implements ISerializable {
   public constructor() {
     makeObservable(this);
     // TODO: Remove
-    const tag1 = new LyricsTag();
-    const tag2 = new LyricsTag();
+    const tags = new Array(6).fill(0).map(() => new LyricsTag());
     runInAction(() => {
-      tag1.name = '大沢瑠璃乃';
-      tag1.color = Color.FromHex('#E7609E')!;
-      tag2.name = '藤島慈';
-      tag2.color = Color.FromHex('#C8C2C6')!;
-      this.replaceTags([tag1, tag2]);
+      tags[0].name = '大沢瑠璃乃';
+      tags[0].color = Color.FromHex('#E7609E')!;
+      tags[1].name = '藤島慈';
+      tags[1].color = Color.FromHex('#C8C2C6')!;
+      tags[2].name = '村野さやか';
+      tags[2].color = Color.FromHex('#5383C3')!;
+      tags[3].name = '夕霧綴理';
+      tags[3].color = Color.FromHex('#C22D3B')!;
+      tags[4].name = '日野下花帆';
+      tags[4].color = Color.FromHex('#F8B500')!;
+      tags[5].name = '乙宗梢';
+      tags[5].color = Color.FromHex('#68BE8D')!;
+      this.replaceTags(tags);
     });
   }
 
@@ -178,6 +185,11 @@ export class TagsRef implements ISerializable {
   @computed({ equals: comparer.shallow })
   public get tagIds(): string[] {
     return this._tags;
+  }
+
+  @computed
+  public get length(): number {
+    return this._tags.length;
   }
 
   @action

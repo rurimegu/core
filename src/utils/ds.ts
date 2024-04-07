@@ -125,3 +125,18 @@ export class RedoQueue<T> extends Deque<T> {
     return this.items[this.headIdx];
   }
 }
+
+export function RangeArray(end: number): number[];
+export function RangeArray(start: number, end: number, step?: number): number[];
+
+export function RangeArray(startOrEnd: number, end = NaN, step = 1): number[] {
+  let start = 0;
+  if (!isNaN(end)) {
+    start = startOrEnd;
+  } else {
+    end = startOrEnd;
+  }
+
+  const length = Math.max(0, Math.ceil((end - start) / step));
+  return Array.from({ length }, (_, i) => start + i * step);
+}

@@ -44,6 +44,16 @@ export function Diff<T>(a: T[], b: T[]): [T[], T[]] {
   return [b.filter((i) => !setA.has(i)), a.filter((i) => !setB.has(i))];
 }
 
+export function ArrayEquals<T>(a: T[], b: T[]): boolean {
+  if (a.length !== b.length) return false;
+  a = a.slice().sort();
+  b = b.slice().sort();
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) return false;
+  }
+  return true;
+}
+
 export function Intersect<T>(a: T[], b: T[]): T[] {
   const setA = new Set(a);
   return b.filter((i) => setA.has(i));
@@ -87,6 +97,10 @@ export class Color implements ISerializable {
         .slice(1)
         .toUpperCase()
     );
+  }
+
+  public toString() {
+    return this.hex;
   }
 
   public tailwindCss(alpha?: number) {
