@@ -390,23 +390,16 @@ export abstract class ParentBlockBase<T extends BlockBase>
       );
     }
     const end = items[items.length - 1].end;
-    if (end.compare(this.end) > 0) {
-      throw new ValueError(
-        `Inserted blocks (${end}) is after ${this.id} (${this.end})`,
-      );
-    }
     const idx = Bisect(this.children, (b) => b.end.compare(start) <= 0);
-    if (idx === this.length) {
-      // Insert at the end
-      return new AddBlocksCommand(this, items, idx);
-    }
-    const child = this.children[idx];
-    if (child.start.compare(start) < 0) {
-      throw new ValueError(`Inserted blocks overlaps with ${child.id}`);
+    if (idx < this.length) {
+      const child = this.children[idx];
+      if (child.start.compare(start) < 0) {
+        throw new ValueError(`Inserted blocks overlaps with ${child.id}`);
+      }
     }
     // Get enough space for the new blocks
     const cs = new CommandSet();
-    const rightInfo = this.checkNextChild(idx, alignDiv, end);
+    const rightInfo = this.checkNextChild(idx - 1, alignDiv, end);
     const newEnd =
       rightInfo.end.compare(this.end) > 0 ? rightInfo.end : this.end;
     if (!newEnd.equals(this.end) && this.parent) {
@@ -414,6 +407,7 @@ export abstract class ParentBlockBase<T extends BlockBase>
         this.parent.resizeChildCmd(this, alignDiv, this.start, newEnd, true),
       );
     }
+    cs.add(rightInfo.cmd);
     cs.add(new AddBlocksCommand(this, items, idx));
     return cs;
   }

@@ -131,7 +131,7 @@ export class RedoQueue<T> extends Deque<T> {
       return undefined;
     }
     this.undoneSteps--;
-    return this.items[this.headIdx];
+    return this.back;
   }
 }
 
