@@ -89,11 +89,7 @@ export function SplitWords(text: string): string[] {
     }
     // East Asian character or left parenthesis
     pushWord();
-    if (IsLeftParenthesis(c)) {
-      word += c;
-    } else {
-      words.push(c);
-    }
+    word += c;
   }
   pushWord();
   console.log('Split words:', words);

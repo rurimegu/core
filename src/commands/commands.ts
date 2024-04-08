@@ -10,6 +10,7 @@ import {
   GetValue,
   ICopyable,
   IProviderOrValue,
+  IWithNewline,
 } from '../utils/types';
 import { TagsStore, LyricsTag, TagsRef } from '../store/tags';
 
@@ -265,6 +266,27 @@ export class ReplaceChildrenCommand<T extends BlockBase> extends Command {
 
   public undo(): void {
     this.parent.replace(this.prevChildren);
+  }
+}
+
+export class SetNewlineCommand extends Command {
+  protected prevNewline = false;
+
+  public constructor(
+    public readonly block: IProviderOrValue<IWithNewline>,
+    public readonly newline: boolean,
+  ) {
+    super();
+  }
+
+  public execute(): void {
+    const block = GetValue(this.block);
+    this.prevNewline = block.newline;
+    block.newline = this.newline;
+  }
+
+  public undo(): void {
+    GetValue(this.block).newline = this.prevNewline;
   }
 }
 //#endregion Block Commands
