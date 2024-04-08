@@ -1,5 +1,5 @@
 import { comparer, computed, makeObservable, observable, override } from 'mobx';
-import { LyricsBlock } from './annotation';
+import { LyricsBlock } from './lyrics';
 import { FloatRange, MAX_BAR, Timing } from '../range';
 import {
   BlockType,

@@ -6,7 +6,8 @@ import {
   BlockType,
   ParentBlockBase,
 } from './base';
-import { AnnotationBlock, LyricsBlock } from './annotation';
+import { AnnotationBlock } from './annotation';
+import { LyricsBlock } from './lyrics';
 import { LyricsTrack } from './track';
 import { Tracks } from './tracks';
 import { Finalizer } from '../../utils/io';
