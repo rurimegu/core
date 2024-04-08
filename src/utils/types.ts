@@ -25,3 +25,7 @@ export interface IWithText {
   get text(): string;
   set text(value: string);
 }
+export interface IWithNewline {
+  get newline(): boolean;
+  set newline(value: boolean);
+}

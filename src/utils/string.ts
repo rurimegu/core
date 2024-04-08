@@ -1,4 +1,5 @@
 import { eastAsianWidth } from 'get-east-asian-width';
+import { LYRICS_SEP } from './constants';
 
 const LEFT_PARENTHESIS = ['(', '[', '{', '（', '［', '｛'];
 const JPN_SMALL = 'ぁぃぅぇぉっゃゅょァィゥェォッャュョ';
@@ -59,7 +60,7 @@ export function IsKana(char: string) {
  * East Asian characters are treated as a single word.
  */
 export function SplitWords(text: string): string[] {
-  text = text.replace(/\s+/g, ' ');
+  text = text.replace(/[ 　]+/g, ' ');
   let word = '';
   const words: string[] = [];
   // Push current word to the list and reset the word buffer
@@ -72,11 +73,11 @@ export function SplitWords(text: string): string[] {
   for (let i = 0; i < text.length; i++) {
     const code = text.charCodeAt(i);
     const c = text[i];
-    if (c === ' ') {
+    if (c === ' ' || c === '\n') {
       // Push the current word and add a space
       pushWord();
-      if (words.length === 0 || words[words.length - 1] !== ' ') {
-        words.push(' ');
+      if (words.length === 0 || words[words.length - 1] !== c) {
+        words.push(c);
       }
       continue;
     }
@@ -99,9 +100,21 @@ export function SplitWords(text: string): string[] {
   return words;
 }
 
-export function SplitLyrics(text: string, separator: string): string {
+export function SplitLyrics(text: string): string {
   return text
     .split(/[\r\n]/g)
-    .map((line) => SplitWords(line.replaceAll(separator, '')).join(separator))
+    .map((line) =>
+      line
+        .split(LYRICS_SEP)
+        .map((s) => SplitWords(s).join(LYRICS_SEP))
+        .join(LYRICS_SEP),
+    )
     .join('\n');
+}
+
+export function SplitLyricsArray(text: string): string[] {
+  return text
+    .split(/[\r\n]/g)
+    .map((line) => line.split(LYRICS_SEP).filter((s) => s))
+    .reduce((cur, words) => [...cur, '\n', ...words], []);
 }

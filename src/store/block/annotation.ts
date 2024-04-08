@@ -1,6 +1,6 @@
 import { makeObservable, observable, override, runInAction } from 'mobx';
 import { Timing } from '../range';
-import { SplitWords } from '../../utils/string';
+import { SplitLyricsArray, SplitWords } from '../../utils/string';
 import { IClonable, ICopyable, IWithText } from '../../utils/types';
 import {
   BlockBase,
@@ -18,6 +18,10 @@ interface AnnotationBlockData extends BlockData {
   text: string;
   start: string;
   end: string;
+}
+
+export enum AnnotationPlaceholder {
+  LINE_BREAK,
 }
 
 export class AnnotationBlock
@@ -61,33 +65,20 @@ export class AnnotationBlock
     text: string,
     start: Timing,
     alignDiv: number,
-    separator: string,
   ): AnnotationBlock[] {
-    return AnnotationBlock.FromSeparatedText(
-      SplitWords(text),
-      start,
-      alignDiv,
-      separator,
-    );
+    return AnnotationBlock.FromSeparatedText(SplitWords(text), start, alignDiv);
   }
 
   public static FromSeparatedText(
     text: string | string[],
     start: Timing,
     alignDiv: number,
-    separator: string,
   ): AnnotationBlock[] {
-    const words =
-      typeof text === 'string'
-        ? text
-            .replace(/[\n\r]+/g, `${separator} ${separator}`)
-            .split(separator)
-            .filter((w) => w)
-        : text;
+    const words = typeof text === 'string' ? SplitLyricsArray(text) : text;
     const annotations: AnnotationBlock[] = [];
     start = start.lowerBound(alignDiv);
     for (const word of words) {
-      if (word === ' ') {
+      if (word === '\n' || word === ' ') {
         start = start.upperBound(alignDiv);
         continue;
       }

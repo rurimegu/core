@@ -61,4 +61,9 @@ export class LyricsTrack
       this.visibleRange.overlaps(block.range),
     );
   }
+
+  @computed({ equals: comparer.shallow })
+  public get visibleNewlines() {
+    return this.visibleBlocks.filter((block) => block.newline);
+  }
 }
