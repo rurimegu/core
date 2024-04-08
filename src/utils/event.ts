@@ -9,7 +9,7 @@ export class MeguEvent<T = void> {
     this.handlers = this.handlers.filter((h) => h !== handler);
   }
 
-  public fire(data: T) {
+  public emit(data: T) {
     this.handlers.forEach((h) => h(data));
   }
 }

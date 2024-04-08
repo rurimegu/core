@@ -18,11 +18,18 @@ export function DeserializeYaml(data: string): any {
   return YAML.parse(data);
 }
 
-export function Gzip(data: ISerializable): Promise<Blob> {
+export function SerializeGzip(data: ISerializable): Promise<Blob> {
   const ds = new CompressionStream('gzip');
   const blob = new Blob([JSON.stringify(data.serialize())]);
-  const decompressedStream = blob.stream().pipeThrough(ds);
-  return new Response(decompressedStream).blob();
+  const stream = blob.stream().pipeThrough(ds);
+  return new Response(stream).blob();
+}
+
+export function DeserializeGzip(array: Uint8Array): Promise<any> {
+  const ds = new DecompressionStream('gzip');
+  const blob = new Blob([array]);
+  const stream = blob.stream().pipeThrough(ds);
+  return new Response(stream).json();
 }
 
 export function PathJoin(...parts: string[]): string {

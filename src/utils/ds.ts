@@ -92,6 +92,10 @@ export class RedoQueue<T> extends Deque<T> {
     return this.backIdx - this.undoneSteps;
   }
 
+  public get canRecover() {
+    return this.undoneSteps > 0;
+  }
+
   public override get empty() {
     return this.frontIdx === this.headIdx;
   }
@@ -116,8 +120,13 @@ export class RedoQueue<T> extends Deque<T> {
     return this.items[this.headIdx];
   }
 
+  public override clear() {
+    super.clear();
+    this.undoneSteps = 0;
+  }
+
   public recoverBack() {
-    if (this.undoneSteps === 0) {
+    if (!this.canRecover) {
       console.warn('RedoQueue has nothing to recover');
       return undefined;
     }

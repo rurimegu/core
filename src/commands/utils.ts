@@ -32,6 +32,7 @@ export class CommandManager {
       console.warn('CommandManager is locked');
       return;
     }
+    if (this.commands.empty) return;
     const command = this.commands.popBack();
     if (command) {
       runInAction(() => {
@@ -48,6 +49,7 @@ export class CommandManager {
       console.warn('CommandManager is locked');
       return;
     }
+    if (!this.commands.canRecover) return;
     const command = this.commands.recoverBack();
     if (command) {
       runInAction(() => {
@@ -65,6 +67,10 @@ export class CommandManager {
   public unlock(obj: any): void {
     if (this.lockObj === obj) this.lockObj_ = undefined;
     else throw new ValueError('Unlocking an object that is not locked');
+  }
+
+  public clear(): void {
+    this.commands.clear();
   }
 
   public get locked(): boolean {

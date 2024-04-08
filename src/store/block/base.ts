@@ -25,7 +25,7 @@ import {
 } from '../../commands';
 import { Bisect } from '../../utils/math';
 import { SMALL_DS_THRESHOLD } from '../../utils/constants';
-import { Constructor, IWithText, IWithId } from '../../utils/types';
+import { Constructor, IWithId } from '../../utils/types';
 
 export enum BlockType {
   Unknown = 'Unknown',
@@ -445,9 +445,7 @@ export function ResizeBlockCmd<T extends BlockBase>(
   if (block.start.equals(start) && block.end.equals(end))
     return block.noopResizeAction;
   const cs = new CommandSet();
-  const blockText = (block as unknown as IWithText).text;
   if (notifyParent && block.parent) {
-    console.trace(blockText, 'Resizing parent');
     cs.add(block.parent.resizeChildCmd(block, alignDiv, start, end, true));
   }
   if (!block.start.equals(start)) {
