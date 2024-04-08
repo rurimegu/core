@@ -2,6 +2,7 @@ import { eastAsianWidth } from 'get-east-asian-width';
 import { LYRICS_SEP } from './constants';
 
 const LEFT_PARENTHESIS = ['(', '[', '{', '（', '［', '｛'];
+const PUNCTUATIONS = ['ー'];
 const JPN_SMALL = 'ぁぃぅぇぉっゃゅょァィゥェォッャュョ';
 
 export function FormatTime(time: number, precision = 0) {
@@ -40,7 +41,7 @@ export function IsDigit(code: number) {
 }
 
 export function IsPunctuation(char: string) {
-  return /^\p{P}$/u.test(char);
+  return /^\p{P}$/u.test(char) || PUNCTUATIONS.includes(char);
 }
 
 export function IsLeftParenthesis(char: string) {
@@ -88,7 +89,7 @@ export function SplitWords(text: string): string[] {
       continue;
     }
     // East Asian character or left parenthesis
-    pushWord();
+    if (!IsLeftParenthesis(word)) pushWord();
     word += c;
   }
   pushWord();
