@@ -1,7 +1,7 @@
 import { action, computed, makeObservable, observable } from 'mobx';
 import { ISerializable } from '../utils/io';
 import { DataError, ValueError } from '../utils/error';
-import { ApproxLeq, Clamp, EPSILON, Gcd } from '../utils/math';
+import { ApproxEqual, ApproxLeq, Clamp, EPSILON, Gcd } from '../utils/math';
 
 export const MAX_BAR = 60 * 24;
 
@@ -201,7 +201,7 @@ export class FloatRange implements ISerializable {
   public static readonly INVALID = new FloatRange();
   public static readonly FULL = new FloatRange(-Infinity, Infinity);
   public static readonly EqualityComparer = (a: FloatRange, b: FloatRange) => {
-    return ApproxLeq(a.start, b.start) && ApproxLeq(a.end, b.end);
+    return ApproxEqual(a.start, b.start) && ApproxEqual(a.end, b.end);
   };
 
   @observable start: number;

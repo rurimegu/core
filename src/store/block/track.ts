@@ -57,9 +57,10 @@ export class LyricsTrack
 
   @computed({ equals: comparer.shallow })
   public get visibleBlocks() {
-    return this.children.filter((block) =>
+    const ret = this.children.filter((block) =>
       this.visibleRange.overlaps(block.range),
     );
+    return ret;
   }
 
   @computed({ equals: comparer.shallow })
