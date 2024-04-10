@@ -7,3 +7,4 @@ export * from './string';
 export * from './promise';
 export * from './math';
 export * from './algo';
+export * from './constants';

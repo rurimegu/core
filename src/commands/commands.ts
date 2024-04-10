@@ -13,6 +13,7 @@ import {
   IWithNewline,
 } from '../utils/types';
 import { TagsStore, LyricsTag, TagsRef } from '../store/tags';
+import { AnnotationBlock, LyricsBlock } from '../store';
 
 //#region Command Base
 export abstract class Command {
@@ -209,6 +210,17 @@ export class SetTextCommand extends Command {
   }
 }
 
+export class SetSimpleBlockCommand extends CommandSet {
+  public constructor(block: LyricsBlock, alignDiv: number, text: string) {
+    super([
+      new SetTextCommand(block, ''),
+      new ReplaceChildrenCommand(block, alignDiv, [
+        AnnotationBlock.Create(text, block.start, block.end),
+      ]),
+    ]);
+  }
+}
+
 export class SetBlockStartCommand extends Command {
   protected prevStart: Timing = Timing.INVALID;
 
@@ -251,21 +263,36 @@ export class SetBlockEndCommand extends Command {
 
 export class ReplaceChildrenCommand<T extends BlockBase> extends Command {
   protected prevChildren: BlockBase[] = [];
+  protected readonly resizeCmd: Command;
 
   public constructor(
     public readonly parent: ParentBlockBase<BlockBase>,
+    alignDiv: number,
     public readonly children: T[],
   ) {
     super();
+    const grandParent = parent.parent;
+    if (grandParent) {
+      this.resizeCmd = grandParent.resizeChildCmd(
+        parent,
+        alignDiv,
+        children[0].start,
+        children[children.length - 1].end,
+      );
+    } else {
+      this.resizeCmd = Command.Noop();
+    }
   }
 
   public execute(): void {
-    this.prevChildren = this.parent.children;
+    this.prevChildren = this.parent.children.slice();
+    this.resizeCmd.execute();
     this.parent.replace(this.children);
   }
 
   public undo(): void {
     this.parent.replace(this.prevChildren);
+    this.resizeCmd.undo();
   }
 }
 

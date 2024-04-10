@@ -113,5 +113,5 @@ export function SplitLyricsArray(text: string): string[] {
   return text
     .split(/[\r\n]/g)
     .map((line) => line.split(LYRICS_SEP).filter((s) => s))
-    .reduce((cur, words) => [...cur, '\n', ...words], []);
+    .reduce((cur, words) => [...cur, '\n', ...words]);
 }

@@ -19,8 +19,8 @@ import {
 import { LyricsTrack } from './track';
 import { IWithTags, TagsStore } from '../tags';
 import { AnnotationBlock } from './annotation';
-import { SplitLyricsArray, SplitWords } from '../../utils';
-import { ANNO_INDIC } from '../../utils/constants';
+import { SplitLyrics, SplitLyricsArray } from '../../utils';
+import { ANNO_INDIC, LYRICS_SEP } from '../../utils/constants';
 
 export interface LyricsBlockData extends ParentOptionalTextData {
   tags: string[];
@@ -80,7 +80,7 @@ export class LyricsBlock
     alignDiv: number,
   ): LyricsBlock[] {
     return LyricsBlock.FromSeparatedText(
-      SplitWords(text),
+      SplitLyrics(text),
       start,
       alignDiv,
       true,
@@ -146,6 +146,13 @@ export class LyricsBlock
   @computed
   public get bottomText(): string {
     return this.isSimple ? this.first.text : this.text;
+  }
+
+  @computed
+  public get topText(): string {
+    return this.isSimple
+      ? ''
+      : this.children.map((a) => a.text).join(LYRICS_SEP);
   }
 
   @action

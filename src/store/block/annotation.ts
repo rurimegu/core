@@ -1,6 +1,6 @@
 import { makeObservable, observable, override, runInAction } from 'mobx';
 import { Timing } from '../range';
-import { SplitLyricsArray, SplitWords } from '../../utils/string';
+import { SplitLyrics, SplitLyricsArray } from '../../utils/string';
 import { IClonable, ICopyable, IWithText } from '../../utils/types';
 import {
   BlockBase,
@@ -66,7 +66,11 @@ export class AnnotationBlock
     start: Timing,
     alignDiv: number,
   ): AnnotationBlock[] {
-    return AnnotationBlock.FromSeparatedText(SplitWords(text), start, alignDiv);
+    return AnnotationBlock.FromSeparatedText(
+      SplitLyrics(text),
+      start,
+      alignDiv,
+    );
   }
 
   public static FromSeparatedText(
@@ -97,6 +101,14 @@ export class AnnotationBlock
       ret.end = this.end;
     });
     return ret;
+  }
+
+  public equals(other: AnnotationBlock): boolean {
+    return (
+      this.text === other.text &&
+      this.start.equals(other.start) &&
+      this.end.equals(other.end)
+    );
   }
 
   public newCopy(): AnnotationBlock {
