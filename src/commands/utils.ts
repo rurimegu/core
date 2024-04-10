@@ -3,11 +3,15 @@ import { RedoQueue } from '../utils/ds';
 import { Command } from '.';
 import { ValueError } from '../utils/error';
 import { IProviderOrValue } from '../utils/types';
+import { MeguEvent } from '../utils';
 
 export class CommandManager {
   private commands = new RedoQueue<Command>();
   protected lockObj_?: any;
   protected maxUndoSteps_ = 100;
+  public readonly onExecute = new MeguEvent<Command>();
+  public readonly onUndo = new MeguEvent<Command>();
+  public readonly onRedo = new MeguEvent<Command>();
 
   public execute(command: Command): void {
     if (this.locked) {
@@ -17,6 +21,7 @@ export class CommandManager {
     runInAction(() => {
       command.execute();
     });
+    this.onExecute.emit(command);
     this.push(command);
   }
 
@@ -38,6 +43,7 @@ export class CommandManager {
       runInAction(() => {
         command.undo();
       });
+      this.onUndo.emit(command);
       while (this.commands.length > this.maxUndoSteps) {
         this.commands.popFront();
       }
@@ -55,6 +61,7 @@ export class CommandManager {
       runInAction(() => {
         command.execute();
       });
+      this.onRedo.emit(command);
     }
   }
 
