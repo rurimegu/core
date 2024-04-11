@@ -5,3 +5,4 @@ export * from './lyrics';
 export * from './track';
 export * from './tracks';
 export * from './registry';
+export * from './call';

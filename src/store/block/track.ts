@@ -49,9 +49,8 @@ export class LyricsTrack
 
   @override
   public override deserialize(data: ParentWithTextData & BlockDataHelpers) {
-    const ret = super.deserialize(data);
+    super.deserialize(data);
     this.text = data.text;
-    return ret;
   }
   //#endregion ISerializable
 

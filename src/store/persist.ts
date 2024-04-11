@@ -1,10 +1,10 @@
-import { ISerializable } from '../utils/io';
+import { IDeserializable, ISerializable } from '../utils/io';
 
 export interface PersistStoreData {
   nextId: number;
 }
 
-export class PersistStore implements ISerializable {
+export class PersistStore implements ISerializable, IDeserializable {
   protected nextId_ = 0;
 
   public get nextId(): number {

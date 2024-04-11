@@ -1,13 +1,11 @@
 import YAML from 'yaml';
-export type LookupFunc<T> = (key: string) => T | undefined;
-export type Finalizer<T> = (f: LookupFunc<T>) => void;
 
 export interface ISerializable {
   serialize(): any;
 }
 
-export interface IFinalizable<T> {
-  deserialize(data: any): Finalizer<T>;
+export interface IDeserializable {
+  deserialize(data: any): void;
 }
 
 export function SerializeYaml(data: ISerializable): string {

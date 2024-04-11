@@ -2,7 +2,7 @@ import { BpmStore, BpmStoreData } from './bpm';
 import { Tracks, TracksData } from './block/tracks';
 import { PersistStore, PersistStoreData } from './persist';
 import { LyricsTagsData, TagsStore } from './tags';
-import { ISerializable } from '../utils/io';
+import { IDeserializable, ISerializable } from '../utils/io';
 import { DeserializeBlock } from './block/registry';
 import { runInAction } from 'mobx';
 import { DataError } from '../utils';
@@ -15,7 +15,7 @@ interface LyricsStoreData {
   version: number;
 }
 
-export class LyricsStore implements ISerializable {
+export class LyricsStore implements ISerializable, IDeserializable {
   public static readonly VERSION = 1;
 
   public constructor(

@@ -1,7 +1,7 @@
 import { action, computed, makeObservable, observable } from 'mobx';
 import { Timing } from './range';
 import { InvalidStateError, ValueError } from '../utils/error';
-import { ISerializable } from '../utils/io';
+import { IDeserializable, ISerializable } from '../utils/io';
 import { persistStore } from './persist';
 import { IClonable } from '../utils/types';
 
@@ -74,7 +74,7 @@ export class Bpm implements ISerializable, IClonable<Bpm> {
   //#endregion ISerializable
 }
 
-export class BpmStore implements ISerializable {
+export class BpmStore implements ISerializable, IDeserializable {
   @observable
   public bpmPoints = observable.array<Bpm>([], {
     deep: false,

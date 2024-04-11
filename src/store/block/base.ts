@@ -9,12 +9,7 @@ import {
 } from 'mobx';
 import { UserError, ValueError } from '../../utils/error';
 import { Timing, TimingRange } from '../range';
-import {
-  Finalizer,
-  IFinalizable,
-  ISerializable,
-  LookupFunc,
-} from '../../utils/io';
+import { IDeserializable, ISerializable } from '../../utils/io';
 import { persistStore } from '../persist';
 import {
   AddBlocksCommand,
@@ -26,6 +21,7 @@ import {
 import { Bisect } from '../../utils/math';
 import { SMALL_DS_THRESHOLD } from '../../utils/constants';
 import { Constructor, IWithId } from '../../utils/types';
+import { FutureMap } from '../../utils';
 
 export enum BlockType {
   Unknown = 'Unknown',
@@ -33,6 +29,8 @@ export enum BlockType {
   LyricsTrack = 'LyricsTrack',
   Tracks = 'Tracks',
   Annotation = 'Annotation',
+  Call = 'Call',
+  CallLyrics = 'CallLyrics',
 }
 
 export interface IMergable<T> {
@@ -51,11 +49,16 @@ export interface BlockData {
 }
 
 export interface BlockDataHelpers {
-  create(data: BlockData): [BlockBase, Finalizer<BlockBase>];
+  create(data: BlockData & BlockDataHelpers): BlockBase;
+  context: FutureMap;
 }
 
 export interface ParentBlockData extends BlockData {
   children: BlockData[];
+}
+
+export interface InstantBlockData extends BlockData {
+  time: string;
 }
 
 export interface ParentWithTextData extends ParentBlockData {
@@ -73,7 +76,7 @@ export interface IResizeAction {
 }
 
 export abstract class BlockBase
-  implements ISerializable, IFinalizable<BlockBase>, IWithId
+  implements ISerializable, IDeserializable, IWithId
 {
   @observable
   protected id_: string;
@@ -130,12 +133,14 @@ export abstract class BlockBase
   }
 
   @action
-  public deserialize(data: BlockData) {
+  public deserialize(data: BlockData & BlockDataHelpers) {
     this.id_ = data.id;
-    return (blockGetter: LookupFunc<BlockBase>) => {
-      if (data.parent)
-        this.setParent(blockGetter(data.parent) as ParentBlockBase<BlockBase>);
-    };
+    data.context.set(this.id, this);
+    if (data.parent) {
+      data.context.runWhenReady(data.parent, (parent) => {
+        this.setParent(parent as ParentBlockBase<BlockBase>);
+      });
+    }
   }
   //#endregion ISerializable
 
@@ -242,15 +247,11 @@ export abstract class ParentBlockBase<T extends BlockBase>
 
   @override
   public override deserialize(data: ParentBlockData & BlockDataHelpers) {
-    const parentFinalizer = super.deserialize(data);
-    const results = data.children.map((c) => data.create(c));
-    const blocks = results.map((r) => r[0]) as T[];
-    const finalizers = results.map((r) => r[1]);
-    this.replace(blocks);
-    return (blockGetter: LookupFunc<BlockBase>) => {
-      for (const finalizer of finalizers) finalizer(blockGetter);
-      parentFinalizer(blockGetter);
-    };
+    super.deserialize(data);
+    const results = data.children.map((c) =>
+      data.create({ ...c, create: data.create, context: data.context }),
+    );
+    this.replace(results as T[]);
   }
   //#endregion ISerializable
 

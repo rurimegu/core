@@ -6,7 +6,7 @@ import {
   observable,
   runInAction,
 } from 'mobx';
-import { ISerializable } from '../utils/io';
+import { IDeserializable, ISerializable } from '../utils/io';
 import _ from 'lodash';
 import { IClonable } from '../utils/types';
 import { Color } from '../utils/algo';
@@ -166,7 +166,7 @@ export interface IWithTags {
   tags: TagsRef;
 }
 
-export class TagsRef implements ISerializable {
+export class TagsRef implements ISerializable, IDeserializable {
   @observable protected _tags = observable.array<string>([], { deep: false });
 
   public constructor(public readonly store: TagsStore) {

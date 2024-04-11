@@ -177,10 +177,9 @@ export class LyricsBlock
 
   @override
   public override deserialize(data: LyricsBlockData & BlockDataHelpers) {
-    const ret = super.deserialize(data);
+    super.deserialize(data);
     this.text = data.text ?? '';
     this.newline = Boolean(data.newline);
     if (data.tags) this.tags.deserialize(data.tags);
-    return ret;
   }
 }

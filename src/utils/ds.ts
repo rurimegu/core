@@ -149,3 +149,42 @@ export function RangeArray(startOrEnd: number, end = NaN, step = 1): number[] {
   const length = Math.max(0, Math.ceil((end - start) / step));
   return Array.from({ length }, (_, i) => start + i * step);
 }
+
+export type FutureExecutor = (obj: any) => any;
+export class FutureMap {
+  protected readonly map = new Map<string, any>();
+  protected readonly futureMap = new Map<string, FutureExecutor[]>();
+
+  public set(key: string, value: any) {
+    this.map.set(key, value);
+    const future = this.futureMap.get(key);
+    if (future) {
+      for (const executor of future) {
+        executor(value);
+      }
+      this.futureMap.delete(key);
+    }
+  }
+
+  public get(key: string) {
+    return this.map.get(key);
+  }
+
+  public runWhenReady(key: string, executor: FutureExecutor) {
+    const value = this.map.get(key);
+    if (value !== undefined) {
+      executor(value);
+    } else {
+      let future = this.futureMap.get(key);
+      if (!future) {
+        future = [];
+        this.futureMap.set(key, future);
+      }
+      future.push(executor);
+    }
+  }
+
+  public get unresolvedCount() {
+    return this.futureMap.size;
+  }
+}
