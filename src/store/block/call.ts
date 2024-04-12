@@ -9,9 +9,10 @@ import {
   ResizeBlockCmd,
 } from './base';
 import { Bisect, IWithText } from '../../utils';
+import { MRef, refManager } from './utils';
+import { LyricsBlock } from './lyrics';
 
 const CALLGROUPS_KEY = 'CallGroups';
-const TEXTREF_PREFIX = '#ref:';
 
 export enum CallType {
   Hi = 'Hi',
@@ -156,7 +157,10 @@ export class CallLyricsBlock extends BlockBase implements IWithText {
   public end = Timing.INVALID;
 
   @observable
-  public text = '';
+  public text_ = '';
+
+  @observable
+  public ref = new MRef<LyricsBlock>(refManager);
 
   public constructor(id?: string) {
     super(id);
@@ -164,13 +168,27 @@ export class CallLyricsBlock extends BlockBase implements IWithText {
   }
 
   @action
-  public setRef(target: BlockBase & IWithText) {
-    this.text = TEXTREF_PREFIX + target.id;
+  public setRef(target: LyricsBlock | undefined) {
+    this.ref.set(target);
+  }
+
+  public get text() {
+    return this.text_;
+  }
+
+  public set text(text: string) {
+    this.text_ = text;
+    this.setRef(undefined);
   }
 
   @computed
   public get bottomText() {
-    return this.text;
+    return this.ref.get()?.text ?? this.text_;
+  }
+
+  @computed
+  public get isRef() {
+    return this.ref.get() !== undefined;
   }
 
   public resizeCmd(

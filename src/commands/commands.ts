@@ -13,7 +13,7 @@ import {
   IWithNewline,
 } from '../utils/types';
 import { TagsStore, LyricsTag, TagsRef } from '../store/tags';
-import { AnnotationBlock, LyricsBlock } from '../store';
+import { AnnotationBlock, CallLyricsBlock, LyricsBlock } from '../store';
 
 //#region Command Base
 export abstract class Command {
@@ -317,6 +317,28 @@ export class SetNewlineCommand extends Command {
   }
 }
 //#endregion Block Commands
+
+//#region Call Commands
+export class SetCallRefCommand extends Command {
+  protected prevRef?: LyricsBlock;
+
+  public constructor(
+    public readonly block: CallLyricsBlock,
+    public readonly target?: LyricsBlock,
+  ) {
+    super();
+  }
+
+  public execute(): void {
+    this.prevRef = this.block.ref.get();
+    this.block.ref.set(this.target);
+  }
+
+  public undo(): void {
+    this.block.ref.set(this.prevRef);
+  }
+}
+//#endregion Call Commands
 
 //#region Tag Commands
 export class SetTagsStoreCommand extends Command {
