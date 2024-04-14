@@ -19,7 +19,7 @@ export enum CallType {
   Fu = 'Fu',
   Fuwa = 'Fuwa',
   Clap = 'Clap',
-  Oh = 'Oh',
+  Ooo = 'Ooo',
 }
 
 export class CallGroup {
@@ -28,7 +28,7 @@ export class CallGroup {
 
   public constructor(
     public readonly id: number,
-    public readonly type: CallType,
+    public readonly type: string,
   ) {
     makeObservable(this);
   }
@@ -59,15 +59,15 @@ export class CallGroup {
 }
 
 export interface CallBlockData extends BlockData {
-  callType: CallType;
+  text: string;
   start: string;
   end: string;
   group?: number;
 }
 
-export class CallBlock extends BlockBase {
+export class CallBlock extends BlockBase implements IWithText {
   public override readonly type = BlockType.Call;
-  public callType = CallType.Hi;
+  public text = CallType.Hi as string;
 
   @observable
   public start = Timing.INVALID;
@@ -112,7 +112,7 @@ export class CallBlock extends BlockBase {
   public serialize(): CallBlockData {
     const ret: CallBlockData = {
       ...super.serialize(),
-      callType: this.callType,
+      text: this.text,
       start: this.start.toString(),
       end: this.end.toString(),
     };
@@ -125,11 +125,11 @@ export class CallBlock extends BlockBase {
   @override
   public override deserialize(data: CallBlockData & BlockDataHelpers) {
     super.deserialize(data);
-    this.callType = data.callType;
+    if (data.text) this.text = data.text;
     this.start = Timing.Deserialize(data.start);
     this.end = Timing.Deserialize(data.end);
     if (data.group) {
-      let callGroups = data.context.get(CALLGROUPS_KEY);
+      let callGroups: Map<number, CallGroup> = data.context.get(CALLGROUPS_KEY);
       if (!callGroups) {
         callGroups = new Map<number, CallGroup>();
         data.context.set(CALLGROUPS_KEY, callGroups);
@@ -137,7 +137,7 @@ export class CallBlock extends BlockBase {
 
       let group = callGroups.get(data.group);
       if (!group) {
-        group = new CallGroup(data.group, data.callType);
+        group = new CallGroup(data.group, this.text);
         callGroups.set(data.group, group);
       }
 

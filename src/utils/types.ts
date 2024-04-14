@@ -29,3 +29,6 @@ export interface IWithNewline {
   get newline(): boolean;
   set newline(value: boolean);
 }
+export function Typeof<U>(arr: any[], type: Constructor<U>): U[] {
+  return arr.filter((x) => x instanceof type) as U[];
+}
