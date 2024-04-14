@@ -10,6 +10,7 @@ import { IDeserializable, ISerializable } from '../utils/io';
 import _ from 'lodash';
 import { IClonable } from '../utils/types';
 import { Color } from '../utils/algo';
+import { RangeArray } from '../utils';
 
 interface LyricsTagData {
   id: string;
@@ -80,7 +81,7 @@ export class TagsStore implements ISerializable {
   public constructor() {
     makeObservable(this);
     // TODO: Remove
-    const tags = new Array(60).fill(0).map(() => new LyricsTag());
+    const tags = RangeArray(60).map(() => new LyricsTag());
     runInAction(() => {
       tags[0].name = '大沢瑠璃乃';
       tags[0].color = Color.FromHex('#E7609E')!;
@@ -94,6 +95,12 @@ export class TagsStore implements ISerializable {
       tags[4].color = Color.FromHex('#F8B500')!;
       tags[5].name = '乙宗梢';
       tags[5].color = Color.FromHex('#68BE8D')!;
+      tags[6].name = '安養寺姫芽';
+      tags[6].color = Color.FromHex('#9D8DE2')!;
+      tags[7].name = '百世吟子';
+      tags[7].color = Color.FromHex('#A2D7DD')!;
+      tags[8].name = '徒町小鈴';
+      tags[8].color = Color.FromHex('#FAD764')!;
       this.replaceTags(tags);
     });
   }
