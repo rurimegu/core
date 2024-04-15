@@ -82,14 +82,14 @@ export class MRef<T extends IWithId> {
   }
 }
 
-export function addCallBlock(
+export function insertCallBlock(
   track: CallsTrack,
   text: string,
   start: Timing,
   alignDiv: number,
 ): Command {
   return runInAction(() => {
-    const end = start.upperBound(alignDiv).upperBound(alignDiv);
+    const end = start.lowerBound(alignDiv).upperBound(alignDiv);
     const block = new CallBlock();
     block.text = text;
     block.start = start;
