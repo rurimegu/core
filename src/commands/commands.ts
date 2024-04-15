@@ -13,7 +13,7 @@ import {
   IWithNewline,
 } from '../utils/types';
 import { TagsStore, LyricsTag, TagsRef } from '../store/tags';
-import { AnnotationBlock, CallLyricsBlock, LyricsBlock } from '../store';
+import { AnnotationBlock, CallBlock, LyricsBlock } from '../store';
 
 //#region Command Base
 export abstract class Command {
@@ -323,7 +323,7 @@ export class SetCallRefCommand extends Command {
   protected prevRef?: LyricsBlock;
 
   public constructor(
-    public readonly block: CallLyricsBlock,
+    public readonly block: CallBlock,
     public readonly target?: LyricsBlock,
   ) {
     super();

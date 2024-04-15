@@ -27,10 +27,10 @@ export enum BlockType {
   Unknown = 'Unknown',
   Lyrics = 'Lyrics',
   LyricsTrack = 'LyricsTrack',
+  CallsTrack = 'CallsTrack',
   Tracks = 'Tracks',
   Annotation = 'Annotation',
   Call = 'Call',
-  CallLyrics = 'CallLyrics',
 }
 
 export interface IMergable<T> {

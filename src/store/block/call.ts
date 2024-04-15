@@ -18,8 +18,9 @@ export enum CallType {
   Hi = 'Hi',
   Fu = 'Fu',
   Fuwa = 'Fuwa',
-  Clap = 'Clap',
-  Ooo = 'Ooo',
+  Clap = '👏',
+  U = 'U-',
+  O = 'O-',
 }
 
 export class CallGroup {
@@ -59,15 +60,18 @@ export class CallGroup {
 }
 
 export interface CallBlockData extends BlockData {
-  text: string;
+  text?: string;
   start: string;
   end: string;
   group?: number;
+  ref?: string;
 }
 
 export class CallBlock extends BlockBase implements IWithText {
-  public override readonly type = BlockType.Call;
-  public text = CallType.Hi as string;
+  public override readonly type: BlockType = BlockType.Call;
+
+  @observable
+  public text_ = CallType.Hi as string;
 
   @observable
   public start = Timing.INVALID;
@@ -77,87 +81,6 @@ export class CallBlock extends BlockBase implements IWithText {
 
   @observable
   public group?: CallGroup;
-
-  public constructor(id?: string) {
-    super(id);
-    makeObservable(this);
-  }
-
-  public resizeCmd(
-    alignDiv: number,
-    allowExpand: boolean,
-    start?: Timing | undefined,
-    end?: Timing | undefined,
-    notifyParent?: boolean | undefined,
-  ): IResizeAction {
-    return ResizeBlockCmd(
-      this,
-      alignDiv,
-      allowExpand,
-      start,
-      end,
-      notifyParent,
-    );
-  }
-
-  @action
-  public setGroup(group: CallGroup | undefined) {
-    if (this.group === group) return;
-    this.group?.remove(this);
-    this.group = group;
-    group?.add(this);
-  }
-
-  //#region ISerializable
-  public serialize(): CallBlockData {
-    const ret: CallBlockData = {
-      ...super.serialize(),
-      text: this.text,
-      start: this.start.toString(),
-      end: this.end.toString(),
-    };
-    if (this.group) {
-      ret.group = this.group.id;
-    }
-    return ret;
-  }
-
-  @override
-  public override deserialize(data: CallBlockData & BlockDataHelpers) {
-    super.deserialize(data);
-    if (data.text) this.text = data.text;
-    this.start = Timing.Deserialize(data.start);
-    this.end = Timing.Deserialize(data.end);
-    if (data.group) {
-      let callGroups: Map<number, CallGroup> = data.context.get(CALLGROUPS_KEY);
-      if (!callGroups) {
-        callGroups = new Map<number, CallGroup>();
-        data.context.set(CALLGROUPS_KEY, callGroups);
-      }
-
-      let group = callGroups.get(data.group);
-      if (!group) {
-        group = new CallGroup(data.group, this.text);
-        callGroups.set(data.group, group);
-      }
-
-      this.setGroup(group);
-    }
-  }
-  //#endregion ISerializable
-}
-
-export class CallLyricsBlock extends BlockBase implements IWithText {
-  public override readonly type = BlockType.CallLyrics;
-
-  @observable
-  public start = Timing.INVALID;
-
-  @observable
-  public end = Timing.INVALID;
-
-  @observable
-  public text_ = '';
 
   @observable
   public ref = new MRef<LyricsBlock>(refManager);
@@ -207,4 +130,55 @@ export class CallLyricsBlock extends BlockBase implements IWithText {
       notifyParent,
     );
   }
+
+  @action
+  public setGroup(group: CallGroup | undefined) {
+    if (this.group === group) return;
+    this.group?.remove(this);
+    this.group = group;
+    group?.add(this);
+  }
+
+  //#region ISerializable
+  public serialize(): CallBlockData {
+    const ret: CallBlockData = {
+      ...super.serialize(),
+      start: this.start.toString(),
+      end: this.end.toString(),
+    };
+    if (this.group) ret.group = this.group.id;
+    const ref = this.ref.get();
+    if (ref) ret.ref = ref.id;
+    if (this.text) ret.text = this.text;
+    return ret;
+  }
+
+  @override
+  public override deserialize(data: CallBlockData & BlockDataHelpers) {
+    super.deserialize(data);
+    if (data.text) this.text = data.text;
+    this.start = Timing.Deserialize(data.start);
+    this.end = Timing.Deserialize(data.end);
+    if (data.group) {
+      let callGroups: Map<number, CallGroup> = data.context.get(CALLGROUPS_KEY);
+      if (!callGroups) {
+        callGroups = new Map<number, CallGroup>();
+        data.context.set(CALLGROUPS_KEY, callGroups);
+      }
+
+      let group = callGroups.get(data.group);
+      if (!group) {
+        group = new CallGroup(data.group, this.text);
+        callGroups.set(data.group, group);
+      }
+
+      this.setGroup(group);
+    }
+    if (data.ref) {
+      data.context.runWhenReady(data.ref, (ref: LyricsBlock) =>
+        this.setRef(ref),
+      );
+    }
+  }
+  //#endregion ISerializable
 }

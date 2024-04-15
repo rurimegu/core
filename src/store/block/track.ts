@@ -9,25 +9,15 @@ import {
   ParentWithTextData,
 } from './base';
 import { IWithText } from '../../utils/types';
+import { CallBlock } from './call';
 
-export type TrackBlock = LyricsTrack;
+export type TrackBlock = LyricsTrack | CallsTrack;
 
 export abstract class TrackBlockBase<
   T extends BlockBase,
-> extends ParentBlockBase<T> {}
-
-export class LyricsTrack
-  extends TrackBlockBase<LyricsBlock>
-  implements IWithText
-{
-  public readonly type = BlockType.LyricsTrack;
+> extends ParentBlockBase<T> {
   @observable public text = 'New track';
   @observable public visibleRange = new FloatRange(0, MAX_BAR);
-
-  public constructor(id?: string) {
-    super(id);
-    makeObservable(this);
-  }
 
   @override
   public override get start() {
@@ -37,6 +27,14 @@ export class LyricsTrack
   @override
   public override get end() {
     return Timing.INFINITY;
+  }
+
+  @computed({ equals: comparer.shallow })
+  public get visibleBlocks() {
+    const ret = this.children.filter((block) =>
+      this.visibleRange.overlaps(block.range),
+    );
+    return ret;
   }
 
   //#region ISerializable
@@ -53,17 +51,30 @@ export class LyricsTrack
     this.text = data.text;
   }
   //#endregion ISerializable
+}
 
-  @computed({ equals: comparer.shallow })
-  public get visibleBlocks() {
-    const ret = this.children.filter((block) =>
-      this.visibleRange.overlaps(block.range),
-    );
-    return ret;
+export class LyricsTrack
+  extends TrackBlockBase<LyricsBlock>
+  implements IWithText
+{
+  public readonly type = BlockType.LyricsTrack;
+
+  public constructor(id?: string) {
+    super(id);
+    makeObservable(this);
   }
 
   @computed({ equals: comparer.shallow })
   public get visibleNewlines() {
     return this.visibleBlocks.filter((block) => block.newline);
+  }
+}
+
+export class CallsTrack extends TrackBlockBase<CallBlock> {
+  public override readonly type = BlockType.CallsTrack;
+
+  public constructor(id?: string) {
+    super(id);
+    makeObservable(this);
   }
 }
