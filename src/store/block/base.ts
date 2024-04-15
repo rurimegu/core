@@ -20,7 +20,7 @@ import {
 } from '../../commands';
 import { Bisect } from '../../utils/math';
 import { SMALL_DS_THRESHOLD } from '../../utils/constants';
-import { Constructor, IWithId } from '../../utils/types';
+import { Constructor, IWithId, RemoveUndefined } from '../../utils/types';
 import { FutureMap } from '../../utils';
 
 export enum BlockType {
@@ -125,11 +125,11 @@ export abstract class BlockBase
 
   //#region ISerializable
   public serialize(): BlockData {
-    return {
+    return RemoveUndefined({
       type: this.type,
       id: this.id,
       parent: this.parent?.id,
-    };
+    });
   }
 
   @action

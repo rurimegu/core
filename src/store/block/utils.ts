@@ -1,5 +1,10 @@
-import { action, makeObservable, observable } from 'mobx';
+import { action, makeObservable, observable, runInAction } from 'mobx';
 import { IWithId } from '../../utils';
+import { CallsTrack } from './track';
+import { Timing } from '../range';
+import { CallBlock } from './call';
+import { Command } from '../../commands';
+import { AnnotationBlock } from './annotation';
 
 export class RefManager {
   protected readonly refs = new Map<string, MRef<any>[]>();
@@ -76,3 +81,21 @@ export class MRef<T extends IWithId> {
     }
   }
 }
+
+export function addCallBlock(
+  track: CallsTrack,
+  text: string,
+  start: Timing,
+  alignDiv: number,
+): Command {
+  return runInAction(() => {
+    const end = start.upperBound(alignDiv).upperBound(alignDiv);
+    const block = new CallBlock();
+    block.text = text;
+    block.start = start;
+    block.end = end;
+    return track.insertCmd(alignDiv, block);
+  });
+}
+
+export type ResizableBlock = AnnotationBlock | CallBlock;

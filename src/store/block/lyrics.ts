@@ -8,7 +8,12 @@ import {
 } from 'mobx';
 import { Timing } from '../range';
 import { DataError } from '../../utils/error';
-import { ICopyable, IWithNewline, IWithText } from '../../utils/types';
+import {
+  ICopyable,
+  IWithNewline,
+  IWithText,
+  RemoveUndefined,
+} from '../../utils/types';
 import {
   BlockDataHelpers,
   BlockType,
@@ -167,12 +172,12 @@ export class LyricsBlock
 
   //#region ISerializable
   public override serialize(): LyricsBlockData {
-    return {
+    return RemoveUndefined({
       ...super.serialize(),
       text: this.text || undefined,
       tags: this.tags.serialize(),
       newline: this.newline,
-    };
+    });
   }
 
   @override

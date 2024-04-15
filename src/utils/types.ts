@@ -32,3 +32,14 @@ export interface IWithNewline {
 export function Typeof<U>(arr: any[], type: Constructor<U>): U[] {
   return arr.filter((x) => x instanceof type) as U[];
 }
+export function RemoveUndefined<T extends Record<symbol, any>>(obj: T) {
+  for (const key in obj) {
+    if (obj[key] === undefined) {
+      delete obj[key];
+    }
+  }
+  return obj;
+}
+export function EnumValues(obj: any): string[] {
+  return Object.keys(obj).map((key) => obj[key]);
+}

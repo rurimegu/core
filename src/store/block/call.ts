@@ -8,9 +8,10 @@ import {
   IResizeAction,
   ResizeBlockCmd,
 } from './base';
-import { Bisect, IWithText } from '../../utils';
+import { Bisect, IWithText, RemoveUndefined } from '../../utils';
 import { MRef, refManager } from './utils';
 import { LyricsBlock } from './lyrics';
+import { CallsTrack } from './track';
 
 const CALLGROUPS_KEY = 'CallGroups';
 
@@ -85,6 +86,11 @@ export class CallBlock extends BlockBase implements IWithText {
   @observable
   public ref = new MRef<LyricsBlock>(refManager);
 
+  @override
+  public override get parent() {
+    return this.parent_ as CallsTrack;
+  }
+
   public constructor(id?: string) {
     super(id);
     makeObservable(this);
@@ -106,7 +112,7 @@ export class CallBlock extends BlockBase implements IWithText {
 
   @computed
   public get bottomText() {
-    return this.ref.get()?.text ?? this.text_;
+    return this.ref.get()?.bottomText ?? this.text_;
   }
 
   @computed
@@ -141,16 +147,14 @@ export class CallBlock extends BlockBase implements IWithText {
 
   //#region ISerializable
   public serialize(): CallBlockData {
-    const ret: CallBlockData = {
+    return RemoveUndefined({
       ...super.serialize(),
       start: this.start.toString(),
       end: this.end.toString(),
-    };
-    if (this.group) ret.group = this.group.id;
-    const ref = this.ref.get();
-    if (ref) ret.ref = ref.id;
-    if (this.text) ret.text = this.text;
-    return ret;
+      group: this.group?.id,
+      ref: this.ref.get()?.id,
+      text: this.text,
+    });
   }
 
   @override
