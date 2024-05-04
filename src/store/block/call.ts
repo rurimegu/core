@@ -8,7 +8,7 @@ import {
   IResizeAction,
   ResizeBlockCmd,
 } from './base';
-import { Bisect, IWithText, RemoveUndefined } from '../../utils';
+import { Bisect, EnumValues, IWithText, RemoveUndefined } from '../../utils';
 import { MRef, refManager } from './utils';
 import { LyricsBlock } from './lyrics';
 import { CallsTrack } from './track';
@@ -118,6 +118,11 @@ export class CallBlock extends BlockBase implements IWithText {
   @computed
   public get isRef() {
     return this.ref.get() !== undefined;
+  }
+
+  @computed
+  public get isPreset() {
+    return EnumValues(CallType).includes(this.text_);
   }
 
   public resizeCmd(
