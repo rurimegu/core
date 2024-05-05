@@ -43,3 +43,4 @@ export function RemoveUndefined<T extends Record<symbol, any>>(obj: T) {
 export function EnumValues(obj: any): string[] {
   return Object.keys(obj).map((key) => obj[key]);
 }
+export type SimpleFunc = () => void;

@@ -102,8 +102,26 @@ export class Timing extends Fraction implements ISerializable {
     return new Timing(0, this.n + step, this.div);
   }
 
-  public add(d: number): Timing {
-    return new Timing(0, this.d + d, this.div);
+  public add(rhs: Timing): Timing {
+    const newDiv = Math.max(this.div, rhs.div);
+    if (newDiv % this.div !== 0 || newDiv % rhs.div !== 0) {
+      throw new ValueError(
+        `Cannot add timings whose divs are not multiples: ${this.serialize()} + ${rhs.serialize()}`,
+      );
+    }
+    const newN = this.n * (newDiv / this.div) + rhs.n * (newDiv / rhs.div);
+    return new Timing(0, newN, newDiv);
+  }
+
+  public sub(rhs: Timing): Timing {
+    const newDiv = Math.max(this.div, rhs.div);
+    if (newDiv % this.div !== 0 || newDiv % rhs.div !== 0) {
+      throw new ValueError(
+        `Cannot subtract timings whose divs are not multiples: ${this.serialize()} - ${rhs.serialize()}`,
+      );
+    }
+    const newN = this.n * (newDiv / this.div) - rhs.n * (newDiv / rhs.div);
+    return new Timing(0, newN, newDiv);
   }
 
   //#region ISerializable

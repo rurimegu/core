@@ -11,9 +11,12 @@ import {
   ICopyable,
   IProviderOrValue,
   IWithNewline,
+  SimpleFunc,
+  NoopFn,
 } from '../utils/types';
 import { TagsStore, LyricsTag, TagsRef } from '../store/tags';
-import { AnnotationBlock, CallBlock, LyricsBlock } from '../store';
+import { AnnotationBlock, LyricsBlock } from '../store';
+import { UFRef, UFRefValueType } from '../utils';
 
 //#region Command Base
 export abstract class Command {
@@ -319,23 +322,23 @@ export class SetNewlineCommand extends Command {
 //#endregion Block Commands
 
 //#region Call Commands
-export class SetCallRefCommand extends Command {
-  protected prevRef?: LyricsBlock;
+export class MergeUFCommand<T extends UFRefValueType> extends Command {
+  protected undoFunc: SimpleFunc = NoopFn;
 
   public constructor(
-    public readonly block: CallBlock,
-    public readonly target?: LyricsBlock,
+    public readonly lhs: UFRef<T>,
+    public readonly rhs: UFRef<T>,
   ) {
     super();
   }
 
   public execute(): void {
-    this.prevRef = this.block.ref.get();
-    this.block.ref.set(this.target);
+    this.undoFunc = this.lhs.merge(this.rhs);
   }
 
   public undo(): void {
-    this.block.ref.set(this.prevRef);
+    this.undoFunc();
+    this.undoFunc = NoopFn;
   }
 }
 //#endregion Call Commands
