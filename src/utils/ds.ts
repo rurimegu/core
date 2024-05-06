@@ -324,11 +324,6 @@ export class UFRef<T extends IWithId> implements IWithId, ISerializable {
   }
 
   @computed
-  public get isRoot() {
-    return this.ref_ !== undefined;
-  }
-
-  @computed
   public get size() {
     return this._root.size_;
   }
@@ -367,7 +362,7 @@ export class UFRef<T extends IWithId> implements IWithId, ISerializable {
 
   @action
   public unmerge() {
-    if (this.isRoot) {
+    if (this.ref_ === undefined) {
       throw new InvalidStateError('Cannot unmerge root of union find');
     }
     // eslint-disable-next-line @typescript-eslint/no-this-alias

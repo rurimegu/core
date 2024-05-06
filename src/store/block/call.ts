@@ -93,6 +93,11 @@ export class CallBlock extends BlockBase implements IWithText {
   }
 
   @computed
+  public get all(): Iterable<CallBlock> {
+    return this.ref_.all;
+  }
+
+  @computed
   protected get selfValue(): string | LyricsBlock {
     const value = this.value_;
     return typeof value === 'string' ? value : value.get() ?? '';

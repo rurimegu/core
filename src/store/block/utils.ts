@@ -21,7 +21,7 @@ export function insertCallBlock(
   });
 }
 
-// TODO: Put developer options to editor config.
+// TODO: Put developer options in editor config.
 declare global {
   const process: Process;
 }
@@ -35,6 +35,5 @@ interface Process {
 export type ResizableBlock = AnnotationBlock | CallBlock;
 
 export function IsDevelopment() {
-  console.log('process.env.NODE_ENV', process.env.NODE_ENV);
   return process.env.NODE_ENV === 'production';
 }
