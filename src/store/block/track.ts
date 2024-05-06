@@ -9,7 +9,7 @@ import {
   ParentWithTextData,
 } from './base';
 import { IWithText } from '../../utils/types';
-import { CallBlock } from './call';
+import { CallBlockBase } from './call';
 
 export type TrackBlock = LyricsTrack | CallsTrack;
 
@@ -70,7 +70,7 @@ export class LyricsTrack
   }
 }
 
-export class CallsTrack extends TrackBlockBase<CallBlock> {
+export class CallsTrack extends TrackBlockBase<CallBlockBase> {
   public override readonly type = BlockType.CallsTrack;
 
   public constructor(id?: string) {

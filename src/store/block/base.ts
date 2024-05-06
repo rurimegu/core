@@ -31,6 +31,7 @@ export enum BlockType {
   Tracks = 'Tracks',
   Annotation = 'Annotation',
   Call = 'Call',
+  SingAlong = 'SingAlong',
 }
 
 export interface IMergable<T> {

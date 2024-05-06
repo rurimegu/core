@@ -196,9 +196,9 @@ export class FutureMap {
 }
 
 export class RefManager {
-  protected readonly refs = new Map<string, MRef<any>[]>();
+  protected readonly refs = new Map<string, MRef<any, any>[]>();
 
-  public unset(id: string, ref: MRef<any>) {
+  public unset(id: string, ref: MRef<any, any>) {
     const refs = this.refs.get(id);
     if (refs) {
       const index = refs.indexOf(ref);
@@ -208,11 +208,11 @@ export class RefManager {
     }
   }
 
-  public get(id: string): MRef<any>[] | undefined {
+  public get(id: string): MRef<any, any>[] | undefined {
     return this.refs.get(id);
   }
 
-  public set(id: string, value: MRef<any>) {
+  public set(id: string, value: MRef<any, any>) {
     let refs = this.refs.get(id);
     if (!refs) {
       refs = [];
@@ -234,7 +234,7 @@ export class RefManager {
     this.refs.clear();
   }
 
-  public recover<T extends IWithId>(target: T, ...values: MRef<any>[]) {
+  public recover<T extends IWithId>(target: T, ...values: MRef<any, any>[]) {
     for (const value of values) {
       value.set(target);
     }
@@ -243,11 +243,14 @@ export class RefManager {
 
 export const refManager = new RefManager();
 
-export class MRef<T extends IWithId> implements IClonable<MRef<T>> {
+export class MRef<T extends IWithId, U> implements IClonable<MRef<T, U>> {
   @observable
   protected value?: T;
 
-  constructor(value?: T) {
+  public constructor(
+    public readonly parent: U,
+    value?: T,
+  ) {
     this.set(value);
     makeObservable(this);
   }
@@ -258,18 +261,14 @@ export class MRef<T extends IWithId> implements IClonable<MRef<T>> {
 
   @action
   public set(value: T | undefined) {
-    if (this.value) {
-      refManager.unset(this.value.id, this);
-    }
+    if (this.value) refManager.unset(this.value.id, this);
     this.value = value;
-    if (value) {
-      refManager.set(value.id, this);
-    }
+    if (value) refManager.set(value.id, this);
   }
 
   //#region IClonable
-  public clone(): MRef<T> {
-    return new MRef<T>(this.value);
+  public clone(): MRef<T, U> {
+    return new MRef<T, U>(this.parent, this.value);
   }
   //#endregion IClonable
 }
@@ -337,7 +336,6 @@ export class UFRef<T extends IWithId> implements IWithId, ISerializable {
     }
   }
 
-  @computed
   public get all(): Iterable<T> {
     return this._root._getAllValues();
   }

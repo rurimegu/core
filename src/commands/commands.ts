@@ -116,13 +116,13 @@ export class NoopCommand extends Command {
 //#endregion Command Base
 
 //#region Block Commands
-interface RemovedBlockData<T extends BlockBase> {
+interface RemovedBlockData<T extends BlockBase, U extends BlockBase> {
   block: T;
-  refs?: MRef<T>[];
+  refs?: MRef<T, U>[];
 }
 
 export class RemoveBlocksCommand<T extends BlockBase> extends Command {
-  protected prevBlocks: RemovedBlockData<T>[] = [];
+  protected prevBlocks: RemovedBlockData<T, any>[] = [];
   protected idx = -1;
 
   public constructor(
@@ -143,7 +143,7 @@ export class RemoveBlocksCommand<T extends BlockBase> extends Command {
     this.prevBlocks = [];
     for (const b of prevBlocks) {
       const refs = refManager.get(b.id);
-      const blockData: RemovedBlockData<T> = {
+      const blockData: RemovedBlockData<T, any> = {
         block: b,
         refs,
       };

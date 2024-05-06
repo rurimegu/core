@@ -4,7 +4,7 @@ import { AnnotationBlock } from './annotation';
 import { LyricsBlock } from './lyrics';
 import { CallsTrack, LyricsTrack } from './track';
 import { Tracks } from './tracks';
-import { CallBlock } from './call';
+import { CallBlock, SingAlongBlock } from './call';
 import { FutureMap } from '../../utils';
 
 export const BLOCK_REGISTRY = {
@@ -14,9 +14,11 @@ export const BLOCK_REGISTRY = {
   [BlockType.Tracks]: Tracks,
   [BlockType.Annotation]: AnnotationBlock,
   [BlockType.Call]: CallBlock,
+  [BlockType.SingAlong]: SingAlongBlock,
 };
 
 export type BlockRegistryType = typeof BLOCK_REGISTRY;
+export type ResizableBlock = AnnotationBlock | LyricsBlock | CallBlock;
 
 export function CreateBlock(data: BlockData & BlockDataHelpers): BlockBase {
   if (data.type === BlockType.Unknown) {
