@@ -13,10 +13,11 @@ import {
   IWithNewline,
   SimpleFunc,
   NoopFn,
+  IWithId,
 } from '../utils/types';
 import { TagsStore, LyricsTag, TagsRef } from '../store/tags';
 import { AnnotationBlock, LyricsBlock } from '../store';
-import { UFRef, UFRefValueType } from '../utils';
+import { MRef, UFRef, refManager } from '../utils';
 
 //#region Command Base
 export abstract class Command {
@@ -115,8 +116,13 @@ export class NoopCommand extends Command {
 //#endregion Command Base
 
 //#region Block Commands
+interface RemovedBlockData<T extends BlockBase> {
+  block: T;
+  refs?: MRef<T>[];
+}
+
 export class RemoveBlocksCommand<T extends BlockBase> extends Command {
-  protected prevBlocks: T[] = [];
+  protected prevBlocks: RemovedBlockData<T>[] = [];
   protected idx = -1;
 
   public constructor(
@@ -133,11 +139,24 @@ export class RemoveBlocksCommand<T extends BlockBase> extends Command {
     } else {
       this.idx = this.item;
     }
-    this.prevBlocks = this.parent.splice(this.idx, this.count);
+    const prevBlocks = this.parent.splice(this.idx, this.count);
+    this.prevBlocks = [];
+    for (const b of prevBlocks) {
+      const refs = refManager.get(b.id);
+      const blockData: RemovedBlockData<T> = {
+        block: b,
+        refs,
+      };
+      if (refs) refManager.delete(b.id);
+      this.prevBlocks.push(blockData);
+    }
   }
 
   public undo(): void {
-    this.parent.splice(this.idx, 0, ...this.prevBlocks);
+    this.parent.splice(this.idx, 0, ...this.prevBlocks.map((b) => b.block));
+    for (const b of this.prevBlocks) {
+      if (b.refs) refManager.recover(b.block, ...b.refs);
+    }
   }
 }
 
@@ -322,7 +341,7 @@ export class SetNewlineCommand extends Command {
 //#endregion Block Commands
 
 //#region Call Commands
-export class MergeUFCommand<T extends UFRefValueType> extends Command {
+export class MergeUFCommand<T extends IWithId> extends Command {
   protected undoFunc: SimpleFunc = NoopFn;
 
   public constructor(

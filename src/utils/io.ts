@@ -1,4 +1,6 @@
 import YAML from 'yaml';
+import { IWithId } from './types';
+import { REF_ID_PREFIX, REF_STR_PREFIX } from './constants';
 
 export interface ISerializable {
   serialize(): any;
@@ -51,4 +53,25 @@ export function CmpVersion(v1: string, v2: string): number {
     if (p1 > p2) return 1;
   }
   return 0;
+}
+
+export function SerializeIdOrString(value: string | IWithId) {
+  if (typeof value === 'string') {
+    if (value.startsWith(REF_STR_PREFIX) || value.startsWith(REF_ID_PREFIX)) {
+      return REF_STR_PREFIX + value;
+    }
+    return value;
+  }
+  return REF_ID_PREFIX + value;
+}
+
+export function IsId(value: string): boolean {
+  return value.startsWith(REF_ID_PREFIX);
+}
+
+export function GetIdOrString(value: string): string {
+  if (!value.startsWith(REF_STR_PREFIX) && !value.startsWith(REF_ID_PREFIX)) {
+    return value;
+  }
+  return value.substring(REF_STR_PREFIX.length);
 }

@@ -8,8 +8,16 @@ import {
   IResizeAction,
   ResizeBlockCmd,
 } from './base';
-import { EnumValues, IWithText, RemoveUndefined, UserError } from '../../utils';
-import { UFRef, UFRefData } from '../../utils/ds';
+import {
+  EnumValues,
+  IWithText,
+  RemoveUndefined,
+  UserError,
+  SerializeIdOrString,
+  IsId,
+  GetIdOrString,
+} from '../../utils';
+import { MRef, UFRef, UFRefData } from '../../utils/ds';
 import { LyricsBlock } from './lyrics';
 import { CallsTrack } from './track';
 import { MergeUFCommand } from '../../commands';
@@ -27,15 +35,17 @@ export interface CallBlockData extends BlockData {
   start: string;
   end: string;
   ref: UFRefData;
+  value: string;
 }
-
-type CallBlockRefValueType = string | LyricsBlock;
 
 export class CallBlock extends BlockBase implements IWithText {
   public override readonly type: BlockType = BlockType.Call;
 
-  // Union find ref to text or LyricsBlock.
-  protected readonly ref_ = new UFRef<CallBlockRefValueType>(CallType.Hi);
+  // Union find ref to self.
+  protected readonly ref_ = new UFRef<CallBlock>(this);
+
+  @observable
+  protected value_: string | MRef<LyricsBlock> = CallType.Hi;
 
   @observable
   public start = Timing.INVALID;
@@ -53,41 +63,55 @@ export class CallBlock extends BlockBase implements IWithText {
     makeObservable(this);
   }
 
+  /** Create a replica of the block at a different start time. */
   replica(start: Timing): CallBlock {
     const ret = new CallBlock();
     ret.start = start;
     ret.end = start.add(this.end.sub(this.start));
-    ret.ref_.set(this.ref_.value);
+    ret.value_ = this.value_;
     return ret;
   }
 
+  @computed
   public get text() {
-    const value = this.ref_.value;
-    if (value instanceof LyricsBlock) {
-      return value.text;
-    }
-    return value;
+    const value = this.group.selfValue;
+    return typeof value === 'string' ? value : value.text;
   }
 
   public set text(text: string) {
-    if (this.ref_.value instanceof LyricsBlock) {
+    const value = this.group;
+    if (typeof value.value_ !== 'string') {
       throw new UserError('Cannot set text of CallBlock with LyricsBlock ref');
     }
-    this.ref_.set(text);
+    value.value_ = text;
+  }
+
+  /** Root of union find. */
+  @computed
+  public get group(): CallBlock {
+    return this.ref_.value;
+  }
+
+  @computed
+  protected get selfValue(): string | LyricsBlock {
+    const value = this.value_;
+    return typeof value === 'string' ? value : value.get() ?? '';
+  }
+
+  @computed
+  public get parentValue(): string | LyricsBlock {
+    return this.group.selfValue;
   }
 
   @computed
   public get bottomText() {
-    const value = this.ref_.value;
-    if (value instanceof LyricsBlock) {
-      return value.bottomText;
-    }
-    return value;
+    const value = this.parentValue;
+    return typeof value === 'string' ? value : value.bottomText;
   }
 
   @computed
   public get isLyricsRef() {
-    return this.ref_.value instanceof LyricsBlock;
+    return typeof this.parentValue !== 'string';
   }
 
   @computed
@@ -97,7 +121,7 @@ export class CallBlock extends BlockBase implements IWithText {
 
   @computed
   public get isPreset() {
-    const value = this.ref_.value;
+    const value = this.parentValue;
     return typeof value === 'string' && EnumValues(CallType).includes(value);
   }
 
@@ -119,18 +143,20 @@ export class CallBlock extends BlockBase implements IWithText {
     );
   }
 
-  public mergeCmd(other: CallBlock): MergeUFCommand<CallBlockRefValueType> {
-    return new MergeUFCommand<CallBlockRefValueType>(this.ref_, other.ref_);
+  public mergeCmd(other: CallBlock): MergeUFCommand<CallBlock> {
+    return new MergeUFCommand<CallBlock>(this.ref_, other.ref_);
   }
   //#endregion Commands
 
   //#region ISerializable
   public serialize(): CallBlockData {
+    const value = this.selfValue;
     return RemoveUndefined({
       ...super.serialize(),
       start: this.start.toString(),
       end: this.end.toString(),
       ref: this.ref_.serialize(),
+      value: SerializeIdOrString(value),
     });
   }
 
@@ -140,6 +166,14 @@ export class CallBlock extends BlockBase implements IWithText {
     this.start = Timing.Deserialize(data.start);
     this.end = Timing.Deserialize(data.end);
     this.ref_.deserialize(data.ref, data.context);
+    const value = GetIdOrString(data.value);
+    if (IsId(data.value)) {
+      data.context.runWhenReady(value, (value: LyricsBlock) => {
+        this.value_ = new MRef(value);
+      });
+    } else {
+      this.value_ = value;
+    }
   }
   //#endregion ISerializable
 }

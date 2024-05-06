@@ -247,10 +247,7 @@ export class MRef<T extends IWithId> implements IClonable<MRef<T>> {
   @observable
   protected value?: T;
 
-  constructor(
-    public readonly manager: RefManager,
-    value?: T,
-  ) {
+  constructor(value?: T) {
     this.set(value);
     makeObservable(this);
   }
@@ -262,59 +259,65 @@ export class MRef<T extends IWithId> implements IClonable<MRef<T>> {
   @action
   public set(value: T | undefined) {
     if (this.value) {
-      this.manager.unset(this.value.id, this);
+      refManager.unset(this.value.id, this);
     }
     this.value = value;
     if (value) {
-      this.manager.set(value.id, this);
+      refManager.set(value.id, this);
     }
   }
 
   //#region IClonable
   public clone(): MRef<T> {
-    return new MRef<T>(this.manager, this.value);
+    return new MRef<T>(this.value);
   }
   //#endregion IClonable
 }
 
 export interface UFRefData {
-  data: string;
+  ref?: string;
+  value: string;
   size: number;
-  isRef: boolean;
 }
-
-export type UFRefValueType = string | IWithId;
 
 /**
  * A reference maintained by union find.
  */
-export class UFRef<T extends UFRefValueType> implements IWithId, ISerializable {
+export class UFRef<T extends IWithId> implements IWithId, ISerializable {
   public readonly id: string;
 
   @observable
-  protected ref_: UFRef<T> | T;
+  protected ref_?: UFRef<T>;
 
+  protected value_: T;
+
+  @observable
   protected size_ = 1;
+
+  @observable
+  protected readonly children_ = observable.set<UFRef<T>>([], {
+    deep: false,
+  });
 
   constructor(value: T) {
     if (value instanceof UFRef) {
       throw new ValueError('Cannot create UFRef to another UFRef');
     }
     this.id = `uf-${persistStore.nextId}`;
-    this.ref_ = value;
+    this.value_ = value;
     makeObservable(this);
   }
 
   @computed
   public get value(): T {
-    return this._root.ref_ as T;
+    return this._root.value_;
   }
 
   @computed
   protected get _root(): UFRef<T> {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     let node: UFRef<T> = this;
-    while (node.ref_ instanceof UFRef) {
+    while (node.ref_ !== undefined) {
       node = node.ref_;
     }
     return node;
@@ -322,7 +325,7 @@ export class UFRef<T extends UFRefValueType> implements IWithId, ISerializable {
 
   @computed
   public get isRoot() {
-    return this.ref_ instanceof MRef;
+    return this.ref_ !== undefined;
   }
 
   @computed
@@ -330,9 +333,24 @@ export class UFRef<T extends UFRefValueType> implements IWithId, ISerializable {
     return this._root.size_;
   }
 
-  @action
-  public set(value: T) {
-    this._root.ref_ = value;
+  protected *_getAllValues(): Iterable<T> {
+    if (this.value_) yield this.value_;
+    for (const child of this.children_) {
+      for (const item of child._getAllValues()) {
+        yield item;
+      }
+    }
+  }
+
+  @computed
+  public get all(): Iterable<T> {
+    return this._root._getAllValues();
+  }
+
+  protected _addChild(child: UFRef<T>) {
+    child.ref_ = this;
+    this.children_.add(child);
+    this.size_ += child.size_;
   }
 
   @action
@@ -343,52 +361,45 @@ export class UFRef<T extends UFRefValueType> implements IWithId, ISerializable {
     if (root1.size_ < root2.size_) {
       [root1, root2] = [root2, root1];
     }
-    const prevRef = root2.ref_ as T;
-    root2.ref_ = root1;
-    root1.size_ += root2.size_;
-    return () => root2.unmerge(prevRef);
+    root1._addChild(root2);
+    return () => root2.unmerge();
   }
 
   @action
-  public unmerge(value: T) {
+  public unmerge() {
     if (this.isRoot) {
       throw new InvalidStateError('Cannot unmerge root of union find');
     }
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     let node: UFRef<T> = this;
     while (node.ref_ instanceof UFRef) {
-      node = node.ref_;
-      node.size_ -= this.size_;
+      const parent = node.ref_;
+      parent.size_ -= this.size_;
+      parent.children_.delete(node);
+      node = parent;
     }
-
-    this.ref_ = value;
+    this.ref_ = undefined;
   }
 
   //#region ISerializable
   serialize(): UFRefData {
-    let id: string;
-    let isRef: boolean;
-    if (typeof this.ref_ === 'string') {
-      id = this.ref_;
-      isRef = false;
-    } else {
-      id = this.ref_.id;
-      isRef = true;
-    }
     return {
-      data: id,
+      ref: this.ref_?.id,
+      value: this.value_.id,
       size: this.size_,
-      isRef,
     };
   }
 
   deserialize(data: UFRefData, future: FutureMap) {
     this.size_ = data.size;
-    if (data.isRef) {
-      future.runWhenReady(data.data, (value: UFRef<T> | T) => {
+    if (data.ref) {
+      future.runWhenReady(data.ref, (value: UFRef<T>) => {
         this.ref_ = value;
       });
     }
+    future.runWhenReady(data.value, (value: T) => {
+      this.value_ = value;
+    });
   }
   //#endregion ISerializable
 }
