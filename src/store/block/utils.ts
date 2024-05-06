@@ -3,7 +3,6 @@ import { CallsTrack } from './track';
 import { Timing } from '../range';
 import { CallBlock } from './call';
 import { Command } from '../../commands';
-import { AnnotationBlock } from './annotation';
 
 export function insertCallBlock(
   track: CallsTrack,
@@ -19,21 +18,4 @@ export function insertCallBlock(
     block.end = end;
     return track.insertCmd(alignDiv, block);
   });
-}
-
-// TODO: Put developer options in editor config.
-declare global {
-  const process: Process;
-}
-
-interface Process {
-  env: {
-    NODE_ENV: string;
-  };
-}
-
-export type ResizableBlock = AnnotationBlock | CallBlock;
-
-export function IsDevelopment() {
-  return process.env.NODE_ENV === 'production';
 }
