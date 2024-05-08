@@ -413,6 +413,29 @@ export abstract class ParentBlockBase<T extends BlockBase>
     cs.add(new AddBlocksCommand(this, items, idx));
     return cs;
   }
+
+  /**
+   * An insertion command that does not require consecutive blocks.
+   * Error is thrown if any of the blocks overlap with existing blocks.
+   * @param items Blocks to insert
+   * @returns Command to insert the blocks
+   */
+  public simpleInsertCmd(...items: T[]): Command {
+    const cs = new CommandSet();
+    // Reverse sort the blocks so that they are inserted in the correct order.
+    items.sort((a, b) => -a.start.compare(b.start));
+    for (const item of items) {
+      const idx = Bisect(this.children, (b) => b.end.compare(item.start) <= 0);
+      if (idx < this.length) {
+        const child = this.children[idx];
+        if (child.start.compare(item.end) < 0) {
+          throw new ValueError(`Inserted block overlaps with existing block.`);
+        }
+      }
+      cs.add(new AddBlocksCommand(this, item, idx));
+    }
+    return cs;
+  }
   //#endregion Commands
 }
 

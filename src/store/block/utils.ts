@@ -16,6 +16,6 @@ export function insertCallBlock(
     block.text = text;
     block.start = start;
     block.end = end;
-    return track.insertCmd(alignDiv, block);
+    return track.simpleInsertCmd(block);
   });
 }

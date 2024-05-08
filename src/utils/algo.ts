@@ -9,11 +9,9 @@ export function UniqueBy<T>(
   arr: T[],
   key: (item: T) => any = Identity<T>,
 ): T[] {
-  const map = new Map<string, T>();
-  for (const item of arr) {
-    map.set(key(item), item);
-  }
-  return Array.from(map.values());
+  return Array.from(
+    new Map<string, T>(arr.map((item) => [key(item), item])).values(),
+  );
 }
 
 export function OrderedDiff(a: number[], b: number[]): [number[], number[]] {

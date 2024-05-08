@@ -13,6 +13,7 @@ import {
   IWithText,
   RemoveUndefined,
   NotImplementedError,
+  IWithBottomText,
 } from '../../utils';
 import { MRef, UFRef, UFRefData } from '../../utils/ds';
 import { LyricsBlock } from './lyrics';
@@ -40,7 +41,10 @@ export interface SingAlongBlockData extends BlockData {
   text: string;
 }
 
-export abstract class CallBlockBase extends BlockBase implements IWithText {
+export abstract class CallBlockBase
+  extends BlockBase
+  implements IWithText, IWithBottomText
+{
   protected text_: string = CallType.Hi;
 
   public constructor(id?: string) {
@@ -196,9 +200,17 @@ export class SingAlongBlock extends CallBlockBase {
     return this.ref_.get();
   }
 
+  public set lyricsBlock(block: LyricsBlock | undefined) {
+    this.ref_.set(block);
+  }
+
   @override
   public override get text() {
     return this.text_ || (this.lyricsBlock?.bottomText ?? '');
+  }
+
+  public override set text(text: string) {
+    super.text = text;
   }
 
   public override get start() {
@@ -227,7 +239,7 @@ export class SingAlongBlock extends CallBlockBase {
     this.text_ = data.text;
     if (data.ref) {
       data.context.runWhenReady(data.ref, (block: LyricsBlock) => {
-        this.ref_.set(block);
+        this.lyricsBlock = block;
       });
     }
   }

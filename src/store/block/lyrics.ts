@@ -10,6 +10,7 @@ import { Timing } from '../range';
 import { DataError } from '../../utils/error';
 import {
   ICopyable,
+  IWithBottomText,
   IWithNewline,
   IWithText,
   RemoveUndefined,
@@ -39,7 +40,8 @@ export class LyricsBlock
     IWithText,
     IMergable<LyricsBlock>,
     IWithTags,
-    IWithNewline
+    IWithNewline,
+    IWithBottomText
 {
   public override readonly type = BlockType.Lyrics;
 

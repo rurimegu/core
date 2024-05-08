@@ -1,7 +1,12 @@
 import { makeObservable, observable, override, runInAction } from 'mobx';
 import { Timing } from '../range';
 import { SplitLyrics, SplitLyricsArray } from '../../utils/string';
-import { IClonable, ICopyable, IWithText } from '../../utils/types';
+import {
+  IClonable,
+  ICopyable,
+  IWithBottomText,
+  IWithText,
+} from '../../utils/types';
 import {
   BlockBase,
   BlockData,
@@ -31,7 +36,8 @@ export class AnnotationBlock
     ICopyable<AnnotationBlock>,
     IMergable<AnnotationBlock>,
     ITimingMutableBlock,
-    IWithText
+    IWithText,
+    IWithBottomText
 {
   public override readonly type = BlockType.Annotation;
 
