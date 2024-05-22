@@ -12,8 +12,8 @@ import {
   EnumValues,
   IWithText,
   RemoveUndefined,
-  NotImplementedError,
   IWithBottomText,
+  UserError,
 } from '../../utils';
 import { MRef, UFRef, UFRefData } from '../../utils/ds';
 import { LyricsBlock } from './lyrics';
@@ -45,6 +45,7 @@ export abstract class CallBlockBase
   extends BlockBase
   implements IWithText, IWithBottomText
 {
+  @observable
   protected text_: string = CallType.Hi;
 
   public constructor(id?: string) {
@@ -186,6 +187,7 @@ export class CallBlock extends CallBlockBase {
 
 export class SingAlongBlock extends CallBlockBase {
   public override readonly type: BlockType = BlockType.SingAlong;
+  public override readonly resizable = false;
 
   protected readonly ref_ = new MRef<LyricsBlock, SingAlongBlock>(this);
 
@@ -222,7 +224,7 @@ export class SingAlongBlock extends CallBlockBase {
   }
 
   public override resizeCmd(): IResizeAction {
-    throw new NotImplementedError('Cannot resize SingAlongBlock');
+    throw new UserError('Cannot resize SingAlongBlock');
   }
 
   //#region ISerializable

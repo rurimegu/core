@@ -82,6 +82,8 @@ export abstract class BlockBase
   @observable
   protected id_: string;
 
+  public readonly resizable: boolean = true;
+
   abstract readonly type: BlockType;
   public abstract get start(): Timing;
   public abstract get end(): Timing;
