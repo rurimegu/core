@@ -212,7 +212,13 @@ export class SingAlongBlock extends CallBlockBase {
   }
 
   public override set text(text: string) {
+    if (text === this.lyricsBlock?.bottomText) text = '';
     super.text = text;
+  }
+
+  @computed
+  public get isOverriden(): boolean {
+    return this.text_ !== '';
   }
 
   public override get start() {

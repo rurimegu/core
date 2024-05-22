@@ -86,6 +86,10 @@ export class CommandSet extends Command {
     return this.commands.pop();
   }
 
+  public clear(): void {
+    this.commands.length = 0;
+  }
+
   public execute(): void {
     for (const command of this.commands) {
       command.execute();
@@ -123,6 +127,7 @@ interface RemovedBlockData<T extends BlockBase, U extends BlockBase> {
 
 export class RemoveBlocksCommand<T extends BlockBase> extends Command {
   protected prevBlocks: RemovedBlockData<T, any>[] = [];
+  protected cs = new CommandSet();
   protected idx = -1;
 
   public constructor(
@@ -136,27 +141,40 @@ export class RemoveBlocksCommand<T extends BlockBase> extends Command {
   public execute(): void {
     if (typeof this.item !== 'number') {
       this.idx = this.parent.indexOf(this.item);
+      if (this.idx < 0) return;
     } else {
       this.idx = this.item;
     }
     const prevBlocks = this.parent.splice(this.idx, this.count);
     this.prevBlocks = [];
+    this.cs.clear();
     for (const b of prevBlocks) {
-      const refs = refManager.get(b.id);
+      const refs = refManager.get(b.id)?.slice();
       const blockData: RemovedBlockData<T, any> = {
         block: b,
         refs,
       };
-      if (refs) refManager.delete(b.id);
+      if (refs) {
+        this.cs.add(
+          ...refs
+            .map((r) => r.parent)
+            .filter((b) => b instanceof BlockBase)
+            .map((b: BlockBase) => new RemoveBlocksCommand(b.parent!, b)),
+        );
+        refManager.delete(b.id);
+      }
       this.prevBlocks.push(blockData);
     }
+    this.cs.execute();
   }
 
   public undo(): void {
-    this.parent.splice(this.idx, 0, ...this.prevBlocks.map((b) => b.block));
+    if (this.idx < 0) return;
     for (const b of this.prevBlocks) {
       if (b.refs) refManager.recover(b.block, ...b.refs);
     }
+    this.cs.undo();
+    this.parent.splice(this.idx, 0, ...this.prevBlocks.map((b) => b.block));
   }
 }
 

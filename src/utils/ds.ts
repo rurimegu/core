@@ -213,12 +213,12 @@ export class RefManager {
   }
 
   public set(id: string, value: MRef<any, any>) {
-    let refs = this.refs.get(id);
-    if (!refs) {
-      refs = [];
-      this.refs.set(id, refs);
+    const refs = this.refs.get(id);
+    if (refs) {
+      refs.push(value);
+    } else {
+      this.refs.set(id, [value]);
     }
-    refs.push(value);
   }
 
   public delete(id: string) {
