@@ -25,7 +25,8 @@ export type ResizableBlock =
   | AnnotationBlock
   | LyricsBlock
   | CallBlock
-  | CommentBlock;
+  | CommentBlock
+  | SingAlongBlock;
 
 export function CreateBlock(data: BlockData & BlockDataHelpers): BlockBase {
   if (data.type === BlockType.Unknown) {
