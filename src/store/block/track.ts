@@ -10,8 +10,9 @@ import {
 } from './base';
 import { IWithText } from '../../utils/types';
 import { CallBlockBase } from './call';
+import { CommentBlock } from './comment';
 
-export type TrackBlock = LyricsTrack | CallsTrack;
+export type TrackBlock = LyricsTrack | CallsTrack | CommentTrack;
 
 export abstract class TrackBlockBase<
   T extends BlockBase,
@@ -72,6 +73,15 @@ export class LyricsTrack
 
 export class CallsTrack extends TrackBlockBase<CallBlockBase> {
   public override readonly type = BlockType.CallsTrack;
+
+  public constructor(id?: string) {
+    super(id);
+    makeObservable(this);
+  }
+}
+
+export class CommentTrack extends TrackBlockBase<CommentBlock> {
+  public override readonly type = BlockType.CommentTrack;
 
   public constructor(id?: string) {
     super(id);

@@ -28,10 +28,12 @@ export enum BlockType {
   Lyrics = 'Lyrics',
   LyricsTrack = 'LyricsTrack',
   CallsTrack = 'CallsTrack',
+  CommentTrack = 'CommentTrack',
   Tracks = 'Tracks',
   Annotation = 'Annotation',
   Call = 'Call',
   SingAlong = 'SingAlong',
+  Comment = 'Comment',
 }
 
 export interface IMergable<T> {
@@ -47,6 +49,10 @@ export interface BlockData {
   type: BlockType;
   id: string;
   parent?: string;
+}
+
+export interface BlockDataWithText extends BlockData {
+  text: string;
 }
 
 export interface BlockDataHelpers {

@@ -7,3 +7,4 @@ export * from './tracks';
 export * from './registry';
 export * from './call';
 export * from './utils';
+export * from './comment';
