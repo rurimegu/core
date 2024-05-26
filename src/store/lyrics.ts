@@ -6,12 +6,14 @@ import { IDeserializable, ISerializable } from '../utils/io';
 import { DeserializeBlock } from './block/registry';
 import { runInAction } from 'mobx';
 import { DataError } from '../utils';
+import { LyricsMetadata, LyricsMetadataData } from './meta';
 
 interface LyricsStoreData {
   tracks: TracksData;
   bpm: BpmStoreData;
   tags: LyricsTagsData;
   persist: PersistStoreData;
+  meta: LyricsMetadataData;
   version: number;
 }
 
@@ -23,6 +25,7 @@ export class LyricsStore implements ISerializable, IDeserializable {
     public readonly bpm: BpmStore,
     public readonly persist: PersistStore,
     public readonly tags: TagsStore,
+    public readonly meta: LyricsMetadata,
   ) {}
 
   //#region ISerializable
@@ -32,6 +35,7 @@ export class LyricsStore implements ISerializable, IDeserializable {
       bpm: this.bpm.serialize(),
       tags: this.tags.serialize(),
       persist: this.persist.serialize(),
+      meta: this.meta.serialize(),
       version: LyricsStore.VERSION,
     };
   }
@@ -45,9 +49,10 @@ export class LyricsStore implements ISerializable, IDeserializable {
     }
     runInAction(() => {
       DeserializeBlock(this.tracks, data.tracks);
-      this.bpm.deserialize(data.bpm);
-      this.tags.deserialize(data.tags);
-      this.persist.deserialize(data.persist);
+      if (data.bpm) this.bpm.deserialize(data.bpm);
+      if (data.tags) this.tags.deserialize(data.tags);
+      if (data.persist) this.persist.deserialize(data.persist);
+      if (data.meta) this.meta.deserialize(data.meta);
     });
   }
   //#endregion ISerializable

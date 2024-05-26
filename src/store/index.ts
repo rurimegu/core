@@ -4,3 +4,4 @@ export * from './block';
 export * from './tags';
 export * from './bpm';
 export * from './persist';
+export * from './meta';

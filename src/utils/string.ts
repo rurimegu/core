@@ -121,7 +121,6 @@ export function ClipString(str: string, length: number) {
 }
 
 export function RemoveTrailing0(numStr: string): string {
-  console.log('Remove trailing 0:', numStr);
   if (!numStr.includes('.')) {
     return numStr;
   }
