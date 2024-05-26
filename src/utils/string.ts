@@ -115,3 +115,7 @@ export function SplitLyricsArray(text: string): string[] {
     .map((line) => line.split(LYRICS_SEP).filter((s) => s))
     .reduce((cur, words) => [...cur, '\n', ...words]);
 }
+
+export function ClipString(str: string, length: number) {
+  return str.length > length ? str.slice(0, length) + '...' : str;
+}
