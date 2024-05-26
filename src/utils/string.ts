@@ -119,3 +119,16 @@ export function SplitLyricsArray(text: string): string[] {
 export function ClipString(str: string, length: number) {
   return str.length > length ? str.slice(0, length) + '...' : str;
 }
+
+export function RemoveTrailing0(numStr: string): string {
+  console.log('Remove trailing 0:', numStr);
+  if (!numStr.includes('.')) {
+    return numStr;
+  }
+  for (let i = numStr.length - 1; i >= 0; i--) {
+    if (numStr[i] !== '0') {
+      return numStr.slice(0, numStr[i] === '.' ? i : i + 1);
+    }
+  }
+  return '0';
+}

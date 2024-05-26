@@ -9,6 +9,7 @@ interface BpmData {
   id: string;
   time: string;
   bpm: number;
+  div: number;
 }
 
 export interface BpmStoreData {
@@ -23,17 +24,25 @@ export class Bpm implements ISerializable, IClonable<Bpm> {
   @observable
   public bpm: number;
 
+  @observable
+  public div: number;
+
   public constructor(
     public readonly id: string,
     time: Timing,
     bpm: number,
+    div: number,
   ) {
     if (bpm < 1) {
       throw new ValueError(`BPM must be >= 1, got ${bpm}`);
     }
+    if (div < 1) {
+      throw new ValueError(`Div must be >= 1, got ${div}`);
+    }
     makeObservable(this);
     this.time = time;
     this.bpm = bpm;
+    this.div = div;
   }
 
   @computed
@@ -51,8 +60,13 @@ export class Bpm implements ISerializable, IClonable<Bpm> {
     this.bpm = bpm;
   }
 
+  @action
+  public setDiv(div: number) {
+    this.div = div;
+  }
+
   public clone(): Bpm {
-    return new Bpm(this.id, this.time, this.bpm);
+    return new Bpm(this.id, this.time, this.bpm, this.div);
   }
 
   public equals(rhs: Bpm): boolean {
@@ -65,11 +79,12 @@ export class Bpm implements ISerializable, IClonable<Bpm> {
       id: this.id,
       time: this.time.serialize(),
       bpm: this.bpm,
+      div: this.div,
     };
   }
 
   public static Deserialize(data: BpmData): Bpm {
-    return new Bpm(data.id, Timing.Deserialize(data.time), data.bpm);
+    return new Bpm(data.id, Timing.Deserialize(data.time), data.bpm, data.div);
   }
   //#endregion ISerializable
 }
@@ -86,7 +101,7 @@ export class BpmStore implements ISerializable, IDeserializable {
 
   public constructor() {
     makeObservable(this);
-    this.bpmPoints.push(this.newBpm(new Timing(0, 0, 1), 120));
+    this.bpmPoints.push(this.newBpm(new Timing(0, 0, 1), 120, 4));
   }
 
   public get offsetS(): number {
@@ -138,8 +153,8 @@ export class BpmStore implements ISerializable, IDeserializable {
   }
 
   @action
-  public newBpm(time: Timing, bpm: number): Bpm {
-    return new Bpm(`bpm-${persistStore.nextId}`, time, bpm);
+  public newBpm(time: Timing, bpm: number, div: number): Bpm {
+    return new Bpm(`bpm-${persistStore.nextId}`, time, bpm, div);
   }
 
   @action
