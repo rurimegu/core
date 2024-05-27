@@ -4,6 +4,7 @@ import { InvalidStateError, ValueError } from '../utils/error';
 import { IDeserializable, ISerializable } from '../utils/io';
 import { persistStore } from './persist';
 import { IClonable } from '../utils/types';
+import { DEFAULT_BPM_DIV } from '../utils';
 
 interface BpmData {
   id: string;
@@ -84,7 +85,12 @@ export class Bpm implements ISerializable, IClonable<Bpm> {
   }
 
   public static Deserialize(data: BpmData): Bpm {
-    return new Bpm(data.id, Timing.Deserialize(data.time), data.bpm, data.div);
+    return new Bpm(
+      data.id,
+      Timing.Deserialize(data.time),
+      data.bpm,
+      data.div ?? DEFAULT_BPM_DIV,
+    );
   }
   //#endregion ISerializable
 }
@@ -101,7 +107,7 @@ export class BpmStore implements ISerializable, IDeserializable {
 
   public constructor() {
     makeObservable(this);
-    this.bpmPoints.push(this.newBpm(new Timing(0, 0, 1), 120, 4));
+    this.bpmPoints.push(this.newBpm(new Timing(0, 0, 1), 120, DEFAULT_BPM_DIV));
   }
 
   public get offsetS(): number {

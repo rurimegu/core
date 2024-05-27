@@ -1,5 +1,6 @@
 // Algorithm
 export const SMALL_DS_THRESHOLD = 16;
+export const DEFAULT_BPM_DIV = 4;
 
 // Lyrics
 export const LYRICS_SEP = '|';
