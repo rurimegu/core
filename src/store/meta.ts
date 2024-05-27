@@ -1,6 +1,5 @@
 import { action, makeObservable, observable } from 'mobx';
 import { IClonable, ISerializable } from '../utils';
-import { tauri } from '@tauri-apps/api';
 
 export interface LyricsMetadataData {
   title: string;
@@ -24,9 +23,6 @@ export class LyricsMetadata
   @observable
   public coverImagePath = '';
 
-  @observable
-  public coverImageUri = '';
-
   public constructor() {
     makeObservable(this);
   }
@@ -49,7 +45,6 @@ export class LyricsMetadata
   @action
   public setCoverImagePath(path: string) {
     this.coverImagePath = path;
-    this.coverImageUri = tauri.convertFileSrc(this.coverImagePath);
   }
 
   //#region IClonable
@@ -60,7 +55,6 @@ export class LyricsMetadata
     clone.artist = this.artist;
     clone.series = this.series;
     clone.coverImagePath = this.coverImagePath;
-    clone.coverImageUri = this.coverImageUri;
     return clone;
   }
 
@@ -70,7 +64,6 @@ export class LyricsMetadata
     this.artist = other.artist;
     this.series = other.series;
     this.coverImagePath = other.coverImagePath;
-    this.coverImageUri = other.coverImageUri;
   }
 
   public equals(other: LyricsMetadata): boolean {

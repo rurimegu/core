@@ -1,7 +1,6 @@
 {
   "name": "@rurino/core",
   "version": "0.0.1",
-  "type": "module",
   "description": "Core utilities for Megumi.",
   "scripts": {
     "build": "tsc",

@@ -7,6 +7,7 @@ import { DeserializeBlock } from './block/registry';
 import { runInAction } from 'mobx';
 import { DataError } from '../utils';
 import { LyricsMetadata, LyricsMetadataData } from './meta';
+import { LyricsBlock } from './block';
 
 interface LyricsStoreData {
   tracks: TracksData;
@@ -21,12 +22,14 @@ export class LyricsStore implements ISerializable, IDeserializable {
   public static readonly VERSION = 1;
 
   public constructor(
-    public readonly tracks: Tracks,
-    public readonly bpm: BpmStore,
-    public readonly persist: PersistStore,
-    public readonly tags: TagsStore,
-    public readonly meta: LyricsMetadata,
-  ) {}
+    public readonly tracks = new Tracks(),
+    public readonly bpm = new BpmStore(),
+    public readonly persist = new PersistStore(),
+    public readonly tags = new TagsStore(),
+    public readonly meta = new LyricsMetadata(),
+  ) {
+    LyricsBlock.tagsStore = tags;
+  }
 
   //#region ISerializable
   public serialize(): LyricsStoreData {

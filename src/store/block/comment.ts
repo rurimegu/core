@@ -4,10 +4,10 @@ import {
   BlockDataHelpers,
   BlockDataWithText,
   BlockType,
-  CommentTrack,
   IResizeAction,
   ResizeBlockCmd,
-} from '.';
+} from './base';
+import { CommentTrack } from './track';
 import { IWithBottomText, IWithText } from '../../utils';
 import { Timing } from '../range';
 
