@@ -9,3 +9,9 @@ export const ANNO_INDIC = ':';
 // I/O
 export const REF_ID_PREFIX = '&';
 export const REF_STR_PREFIX = '*';
+
+// Animate
+export const RES_KEYS = {
+  LYRICS: 'lyrics',
+  AUDIO: 'audio',
+};
