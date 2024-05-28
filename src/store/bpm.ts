@@ -114,6 +114,21 @@ export class BpmStore implements ISerializable, IDeserializable {
     return this.offset / 1000;
   }
 
+  public at(bar: number | Timing): Bpm {
+    if (bar instanceof Timing) {
+      bar = bar.value;
+    }
+    for (let i = 0; i < this.bpmPoints.length; i++) {
+      const bpm = this.bpmPoints[i];
+      const next = this.bpmPoints[i + 1];
+      if (next && bar >= next.time.value) {
+        continue;
+      }
+      return bpm;
+    }
+    throw new InvalidStateError('No BPM points, expect at least 1');
+  }
+
   public barToAudioTime(bar: number | Timing): number {
     if (bar instanceof Timing) {
       bar = bar.value;
