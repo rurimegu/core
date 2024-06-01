@@ -1,6 +1,7 @@
 import {
   AnnotationBlock,
   CallBlock,
+  CallBlockBase,
   CallsTrack,
   CommentBlock,
   CommentTrack,
@@ -9,7 +10,7 @@ import {
   LyricsTrack,
   SingAlongBlock,
 } from '../store';
-import { RangeArray, Typeof, Unreachable } from '../utils';
+import { ApproxEqual, InvalidStateError, MAX_FRAMES, Typeof } from '../utils';
 import { AnimateConfig } from './config';
 import {
   AnnotationRenderData,
@@ -17,38 +18,240 @@ import {
   CallLineRenderData,
   CommentRenderData,
   CommentTrackRenderData,
+  LineRenderData,
   LyricsBlockRenderData,
   LyricsLineRenderData,
+  LyricsParagraphRenderData,
   LyricsRenderData,
   LyricsTrackRenderData,
+  RenderDataBase,
 } from './render-data';
 import { AnimateTiming } from './timing';
 
-type LyricsLineTrack = LyricsTrack | CallsTrack;
+type LineTrack = LyricsTrack | CallsTrack;
 
-class LyricsMerger {
-  protected readonly head: number[];
+abstract class LineConverter<
+  U extends RenderDataBase,
+  T extends LineRenderData<U>,
+> {
+  protected head = 0;
+  protected lastLine?: T;
 
-  public constructor(public readonly tracks: LyricsLineTrack[]) {
-    this.head = RangeArray(tracks.length).map(() => 0);
+  constructor(
+    public readonly parent: RenderDataConverter,
+    public track: LineTrack,
+  ) {
+    this.moveLineNext();
   }
 
-  protected getLyricsHeadBlock(track: LyricsLineTrack) {}
+  protected get headBlock() {
+    if (this.isFinished) return undefined;
+    return this.track.children[this.head];
+  }
 
-  protected getCallHeadBlock(track: CallsTrack) {}
+  protected moveHeadNext() {
+    if (!this.isFinished) this.head += 1;
+    return !this.isFinished;
+  }
 
-  protected getHeadBlock(track: LyricsLineTrack) {
-    if (track instanceof LyricsTrack) {
-      return this.getLyricsHeadBlock(track);
-    } else if (track instanceof CallsTrack) {
-      return this.getCallHeadBlock(track);
+  public get isFinished() {
+    return this.head >= this.track.children.length;
+  }
+
+  public get currentLine() {
+    return this.lastLine;
+  }
+
+  public abstract moveLineNext(): void;
+}
+
+class LyricsLineConverter extends LineConverter<
+  LyricsBlockRenderData,
+  LyricsLineRenderData
+> {
+  public override moveLineNext() {
+    if (this.isFinished) {
+      this.lastLine = undefined;
+      return;
+    }
+    const head = this.headBlock as LyricsBlock;
+    const blocks = this.parent.convertLyricsBlock(head);
+    const firstBlock = blocks[0];
+    // Calculate if hint is needed.
+    const minInterval = this.parent.timing.minHintIntervalAt(
+      head.start,
+    ).hintLyricsLine;
+    const shouldHint =
+      firstBlock.start - (this.lastLine?.end ?? 0) >= minInterval;
+    const hint = shouldHint ? minInterval : 0;
+    // Collect all blocks in the same line until a newline block.
+    while (!head.newline) {
+      if (!this.moveHeadNext()) break;
+      const head = this.headBlock as LyricsBlock;
+      blocks.push(...this.parent.convertLyricsBlock(head));
+    }
+    this.lastLine = new LyricsLineRenderData(hint, blocks);
+  }
+}
+
+class CallLineConverter extends LineConverter<
+  CallBlockRenderData,
+  CallLineRenderData
+> {
+  protected calcSimpleCallBlocks(startIdx: number): CallBlockRenderData[] {
+    const track = this.track as CallsTrack;
+    const blocks = new Array<CallBlockRenderData>();
+    for (let i = startIdx; i < track.length; i++) {
+      const block = track.children[i];
+      if (block instanceof SingAlongBlock) break;
+      const data = this.parent.convertCallBlock(block);
+      if (
+        blocks.length > 0 &&
+        data.start - blocks[blocks.length - 1].end >
+          this.parent.timing.minHintIntervalAt(block.start).sepCallBlock
+      )
+        break;
+      blocks.push(data);
+    }
+    return blocks;
+  }
+  /**
+   * Calculate repeat offsets for the call blocks starting from `startIdx`.
+   * @param startIdx The index of the first call block.
+   * @returns A tuple of the call blocks and repeat offsets.
+   */
+  protected calcRepeatOffsets(
+    startIdx: number,
+  ): [CallBlockRenderData[], number[]] {
+    const track = this.track as CallsTrack;
+    const head = track.children[startIdx] as CallBlock;
+    const group = head.group;
+    const possibleRepeats = [...group.all]
+      .filter((b) => b.start.compare(head.start) >= 0)
+      .sort((a, b) => a.start.compare(b.start));
+
+    if (possibleRepeats.length <= 1) {
+      // No repeats.
+      return [this.calcSimpleCallBlocks(startIdx), [0]];
+    }
+
+    const endIdx = track.children.indexOf(possibleRepeats[1]);
+    const blocks = track.children
+      .slice(startIdx, endIdx)
+      .map((b) => this.parent.convertCallBlock(b));
+
+    if (blocks.some((b) => b.isSingAlong)) {
+      // Sing along blocks should not be repeated.
+      return [this.calcSimpleCallBlocks(startIdx), [0]];
+    }
+
+    const repeatInterval =
+      this.parent.lyrics.bpm.barToAudioTime(possibleRepeats[1].start) -
+      this.parent.lyrics.bpm.barToAudioTime(head.start);
+    const repeatOffsets = new Array<number>();
+
+    // Find max repeats.
+    for (
+      let i = startIdx;
+      i + blocks.length <= track.length;
+      i += blocks.length
+    ) {
+      let isRepeat = true;
+      const expectedTimeOffset =
+        ((i - startIdx) / blocks.length) * repeatInterval;
+      for (let j = 0; j < blocks.length; j++) {
+        const original = track.children[startIdx + j] as CallBlock;
+        const current = track.children[i + j];
+        // Repeated blocks should have the same type.
+        if (!(current instanceof CallBlock)) {
+          isRepeat = false;
+          break;
+        }
+        // Repeated blocks should have the same group.
+        if (original.group !== current.group) {
+          isRepeat = false;
+          break;
+        }
+        // Check timings match.
+        const timeOffset =
+          this.parent.lyrics.bpm.barToAudioTime(current.start) -
+          this.parent.lyrics.bpm.barToAudioTime(original.start);
+        if (!ApproxEqual(timeOffset, expectedTimeOffset)) {
+          isRepeat = false;
+          break;
+        }
+      }
+      if (!isRepeat) break;
+      repeatOffsets.push(
+        this.parent.timing.barToFrame(track.children[i].start) -
+          blocks[0].start,
+      );
+    }
+    return [blocks, repeatOffsets];
+  }
+
+  protected getCallBlocks() {
+    // Checks whether hint is needed.
+    const head = this.headBlock as CallBlock;
+    const firstBlock = this.parent.convertCallBlock(head);
+    const minInterval = this.parent.timing.minHintIntervalAt(
+      head.start,
+    ).hintCallBlock;
+    const shouldHint =
+      firstBlock.start - (this.lastLine?.end ?? 0) >= minInterval;
+    const hint = shouldHint ? minInterval : 0;
+    const [blocks, repeatOffsets] = this.calcRepeatOffsets(this.head);
+    return new CallLineRenderData(hint, blocks, repeatOffsets);
+  }
+
+  protected getSingAlongBlocks() {
+    const blocks = new Array<CallBlockRenderData>();
+    let head = this.headBlock;
+    while (head instanceof SingAlongBlock) {
+      const block = this.parent.convertCallBlock(head);
+      const sepInterval = this.parent.timing.minHintIntervalAt(
+        block.start,
+      ).sepCallBlock;
+      if (
+        blocks.length > 0 &&
+        block.start - blocks[blocks.length - 1].end > sepInterval
+      ) {
+        // Separate sing along blocks due to long interval.
+        break;
+      }
+      blocks.push(block);
+      if (!this.moveHeadNext()) break;
+      head = this.headBlock;
+    }
+    return blocks;
+  }
+
+  public override moveLineNext() {
+    if (this.isFinished) {
+      this.lastLine = undefined;
+      return;
+    }
+    const head = this.headBlock as CallBlockBase;
+    if (head instanceof SingAlongBlock) {
+      const blocks = this.getSingAlongBlocks();
+      const repeatOffsets = [0];
+      // No need to hint for sing along blocks.
+      this.lastLine = new CallLineRenderData(0, blocks, repeatOffsets);
     } else {
-      throw new Unreachable(`${track} is not a valid track type.`);
+      this.lastLine = this.getCallBlocks();
     }
   }
+}
 
-  public get isEnd() {
-    return this.head.every((i) => i >= this.tracks[i].children.length);
+function createLineConverter(parent: RenderDataConverter, track: LineTrack) {
+  if (track instanceof LyricsTrack) {
+    return new LyricsLineConverter(parent, track);
+  } else if (track instanceof CallsTrack) {
+    return new CallLineConverter(parent, track);
+  } else {
+    throw new InvalidStateError(
+      'Unsupported track type when creating line converter.',
+    );
   }
 }
 
@@ -65,7 +268,7 @@ export class RenderDataConverter {
     this.timing = new AnimateTiming(duration, config, lyrics.bpm);
   }
 
-  protected convertAnnotation(block: AnnotationBlock): AnnotationRenderData {
+  public convertAnnotation(block: AnnotationBlock): AnnotationRenderData {
     return new AnnotationRenderData(
       this.timing.barToFrame(block.start),
       this.timing.barToFrame(block.end),
@@ -73,7 +276,7 @@ export class RenderDataConverter {
     );
   }
 
-  protected convertLyricsBlock(block: LyricsBlock): LyricsBlockRenderData[] {
+  public convertLyricsBlock(block: LyricsBlock): LyricsBlockRenderData[] {
     const ret = new Array<LyricsBlockRenderData>();
     // Handle color.
     const colors = block.tags.tags.map((x) => x.color);
@@ -134,58 +337,50 @@ export class RenderDataConverter {
     return ret;
   }
 
-  protected convertLyricsLine(
+  public convertLyricsLine(
     blocks: LyricsBlock[],
     emptyFramesBefore: number,
   ): LyricsLineRenderData {
     const first = blocks[0];
     const last = blocks[blocks.length - 1];
-    const minInterval = this.timing.minHintIntervalAt(first.start).lyricsLine;
+    const minInterval = this.timing.minHintIntervalAt(
+      first.start,
+    ).hintLyricsLine;
     const hint = minInterval >= emptyFramesBefore ? minInterval : undefined;
     if (!last.newline) {
       console.warn('Last block of a line should have newline bit set.');
     }
-    const startFrame = this.timing.barToFrame(first.start);
-    const lastFrame = this.timing.barToFrame(last.end);
     const ret = new LyricsLineRenderData(
-      startFrame,
-      lastFrame,
       hint,
       blocks.flatMap((x) => this.convertLyricsBlock(x)),
     );
     return ret;
   }
 
-  protected convertCallBlock(block: CallBlock): CallBlockRenderData {
+  public convertCallBlock(block: CallBlockBase): CallBlockRenderData {
     return new CallBlockRenderData(
       this.timing.barToFrame(block.start),
       this.timing.barToFrame(block.end),
       block.text,
+      block instanceof SingAlongBlock,
     );
   }
 
-  protected convertCallLine(
+  public convertCallLine(
     blocks: CallBlock[],
     emptyFramesBefore: number,
     repeatOffsets: number[],
   ): CallLineRenderData {
     const first = blocks[0];
-    const last = blocks[blocks.length - 1];
-    const minInterval = this.timing.minHintIntervalAt(first.start).callBlock;
+    const minInterval = this.timing.minHintIntervalAt(
+      first.start,
+    ).hintCallBlock;
     const hint = minInterval >= emptyFramesBefore ? minInterval : undefined;
-    const startFrame = this.timing.barToFrame(first.start);
-    const lastFrame = this.timing.barToFrame(last.end);
     const callBlocks = blocks.map((x) => this.convertCallBlock(x));
-    return new CallLineRenderData(
-      startFrame,
-      lastFrame,
-      hint,
-      callBlocks,
-      repeatOffsets,
-    );
+    return new CallLineRenderData(hint, callBlocks, repeatOffsets);
   }
 
-  protected convertComment(block: CommentBlock): CommentRenderData {
+  public convertComment(block: CommentBlock): CommentRenderData {
     return new CommentRenderData(
       this.timing.barToFrame(block.start),
       this.timing.barToFrame(block.end),
@@ -193,10 +388,8 @@ export class RenderDataConverter {
     );
   }
 
-  protected convertCommentTracks(
-    tracks: CommentTrack[],
-  ): CommentTrackRenderData {
-    const ret = new CommentTrackRenderData(0, this.timing.maxFrame);
+  public convertCommentTracks(tracks: CommentTrack[]): CommentTrackRenderData {
+    const ret = new CommentTrackRenderData();
     ret.addComment(
       ...tracks.flatMap((t) => t.children.map((b) => this.convertComment(b))),
     );
@@ -218,26 +411,42 @@ export class RenderDataConverter {
     }
   }
 
-  protected convertLyricsTracks(
-    tracks: LyricsLineTrack[],
-  ): LyricsTrackRenderData {}
+  public convertLyricsTracks(): LyricsTrackRenderData {
+    const trackConvs = (
+      this.lyrics.tracks.children.filter(
+        (x) => x instanceof LyricsTrack,
+      ) as LyricsTrack[]
+    ).map((x) => createLineConverter(this, x));
+    // Find the main lyrics track.
+    const main = trackConvs.shift();
+    if (!main || !(main instanceof LyricsLineConverter)) {
+      throw new InvalidStateError(
+        'Main lyrics track not found. It must be the first track.',
+      );
+    }
+    const ret = new LyricsTrackRenderData();
+    while (!main.isFinished) {
+      const paragraph = new LyricsParagraphRenderData();
+      main.moveLineNext();
+      const nextStart = main.currentLine?.start ?? MAX_FRAMES;
+      // Find the next line in other tracks.
+      for (const conv of trackConvs) {
+        while (!conv.isFinished && conv.currentLine!.end <= nextStart) {
+          paragraph.addLine(conv.currentLine!);
+          conv.moveLineNext();
+        }
+      }
+      ret.push(paragraph);
+    }
+    return ret;
+  }
 
   public convert(): LyricsRenderData {
     const comments = this.convertCommentTracks(
       Typeof(this.lyrics.tracks.children, CommentTrack),
     );
-    const lines = this.convertLyricsTracks(
-      this.lyrics.tracks.children.filter(
-        (x) => x instanceof LyricsTrack || x instanceof CallsTrack,
-      ) as LyricsLineTrack[],
-    );
-    const ret = new LyricsRenderData(
-      0,
-      this.timing.maxFrame,
-      this.lyrics.meta,
-      lines,
-      comments,
-    );
+    const lines = this.convertLyricsTracks();
+    const ret = new LyricsRenderData(this.lyrics.meta, lines, comments);
     return ret;
   }
 }

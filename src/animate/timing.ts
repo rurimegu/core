@@ -1,6 +1,6 @@
 import { BpmStore, Timing } from '../store';
 import { CeilToMultiple } from '../utils';
-import { AnimateConfig, HintIntervalData } from './config';
+import { AnimateConfig, IntervalData } from './config';
 
 export class AnimateTiming {
   public constructor(
@@ -30,15 +30,18 @@ export class AnimateTiming {
     return this.timeToFrame(this.duration);
   }
 
-  public minHintIntervalAt(timing: Timing | number): HintIntervalData {
+  public minHintIntervalAt(timing: Timing | number): IntervalData {
     const bpm = this.bpm.at(timing).bpm;
     const beatFrames = this.timeToFrame(60 / bpm);
-    const lyricsLine = Math.round(
-      CeilToMultiple(this.config.minHintIntervals.lyricsLine, beatFrames),
+    const hintLyricsLine = Math.round(
+      CeilToMultiple(this.config.minIntervals.hintLyricsLine, beatFrames),
     );
-    const callBlock = Math.round(
-      CeilToMultiple(this.config.minHintIntervals.callBlock, beatFrames),
+    const hintCallBlock = Math.round(
+      CeilToMultiple(this.config.minIntervals.hintCallBlock, beatFrames),
     );
-    return { lyricsLine, callBlock };
+    const sepCallBlock = Math.round(
+      CeilToMultiple(this.config.minIntervals.sepCallBlock, beatFrames),
+    );
+    return { hintLyricsLine, hintCallBlock, sepCallBlock };
   }
 }
