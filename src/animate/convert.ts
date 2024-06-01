@@ -45,17 +45,21 @@ abstract class LineConverter<
   }
 
   protected get headBlock() {
-    if (this.isFinished) return undefined;
+    if (this.isHeadFinished) return undefined;
     return this.track.children[this.head];
   }
 
   protected moveHeadNext() {
-    if (!this.isFinished) this.head += 1;
-    return !this.isFinished;
+    if (!this.isHeadFinished) this.head++;
+    return !this.isHeadFinished;
+  }
+
+  protected get isHeadFinished() {
+    return this.head >= this.track.children.length;
   }
 
   public get isFinished() {
-    return this.head >= this.track.children.length;
+    return this.isHeadFinished && !this.lastLine;
   }
 
   public get currentLine() {
@@ -70,7 +74,7 @@ class LyricsLineConverter extends LineConverter<
   LyricsLineRenderData
 > {
   public override moveLineNext() {
-    if (this.isFinished) {
+    if (this.isHeadFinished) {
       this.lastLine = undefined;
       return;
     }
@@ -227,7 +231,7 @@ class CallLineConverter extends LineConverter<
   }
 
   public override moveLineNext() {
-    if (this.isFinished) {
+    if (this.isHeadFinished) {
       this.lastLine = undefined;
       return;
     }
@@ -414,8 +418,8 @@ export class RenderDataConverter {
   public convertLyricsTracks(): LyricsTrackRenderData {
     const trackConvs = (
       this.lyrics.tracks.children.filter(
-        (x) => x instanceof LyricsTrack,
-      ) as LyricsTrack[]
+        (x) => x instanceof LyricsTrack || x instanceof CallsTrack,
+      ) as LineTrack[]
     ).map((x) => createLineConverter(this, x));
     // Find the main lyrics track.
     const main = trackConvs.shift();
@@ -427,6 +431,7 @@ export class RenderDataConverter {
     const ret = new LyricsTrackRenderData();
     while (!main.isFinished) {
       const paragraph = new LyricsParagraphRenderData();
+      paragraph.addLine(main.currentLine!);
       main.moveLineNext();
       const nextStart = main.currentLine?.start ?? MAX_FRAMES;
       // Find the next line in other tracks.

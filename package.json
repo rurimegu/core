@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "Core utilities for Megumi.",
   "scripts": {
-    "build": "tsc",
+    "tsc": "tsc",
     "watch": "tsc -w"
   },
   "main": "dist/index.js",
