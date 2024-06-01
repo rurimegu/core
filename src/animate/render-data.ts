@@ -207,6 +207,7 @@ export class CommentTrackRenderData extends Array<CommentLineRenderData> {
 
 export class LyricsRenderData extends RenderDataBase {
   public constructor(
+    public readonly end: number,
     public readonly meta: LyricsMetadata,
     public readonly lines = new LyricsTrackRenderData(),
     public readonly comments = new CommentTrackRenderData(),
@@ -216,9 +217,5 @@ export class LyricsRenderData extends RenderDataBase {
 
   public override get start() {
     return 0;
-  }
-
-  public override get end() {
-    return MAX_FRAMES;
   }
 }

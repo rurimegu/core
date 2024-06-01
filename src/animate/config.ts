@@ -11,6 +11,8 @@ export interface AnimateConfigData {
   resources: ResourceMappingData;
   fps?: number;
   openFrames?: number;
+  width?: number;
+  height?: number;
   minIntervals?: IntervalData;
 }
 
@@ -18,6 +20,8 @@ export class AnimateConfig implements ISerializable {
   public readonly resources = new ResourceMapping();
   public fps = 60;
   public openFrames = 180;
+  public width = 1280;
+  public height = 720;
   public minIntervals: IntervalData = {
     hintLyricsLine: 180,
     hintCallBlock: 180,
@@ -30,6 +34,8 @@ export class AnimateConfig implements ISerializable {
       resources: this.resources.serialize(),
       fps: this.fps,
       openFrames: this.openFrames,
+      width: this.width,
+      height: this.height,
       minHintIntervals: this.minIntervals,
     };
   }
@@ -38,6 +44,8 @@ export class AnimateConfig implements ISerializable {
     this.resources.deserialize(data.resources);
     this.fps = data.fps ?? this.fps;
     this.openFrames = data.openFrames ?? this.openFrames;
+    this.width = data.width ?? this.width;
+    this.height = data.height ?? this.height;
     this.minIntervals = data.minIntervals ?? this.minIntervals;
   }
   //#endregion ISerializable

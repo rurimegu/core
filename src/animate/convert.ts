@@ -451,7 +451,12 @@ export class RenderDataConverter {
       Typeof(this.lyrics.tracks.children, CommentTrack),
     );
     const lines = this.convertLyricsTracks();
-    const ret = new LyricsRenderData(this.lyrics.meta, lines, comments);
+    const ret = new LyricsRenderData(
+      this.timing.maxFrame,
+      this.lyrics.meta,
+      lines,
+      comments,
+    );
     return ret;
   }
 }
