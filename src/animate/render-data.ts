@@ -1,3 +1,4 @@
+import _ from 'lodash';
 import { LyricsMetadata } from '../store';
 import { Bisect, Color, InvalidStateError, MAX_FRAMES } from '../utils';
 
@@ -48,6 +49,10 @@ export class LyricsBlockRenderData extends LineBlockRenderData {
   public get isSingAlong() {
     return this.singAlong !== undefined;
   }
+
+  public get isEmpty() {
+    return !this.text && this.children.length === 0;
+  }
 }
 
 export class CallBlockRenderData extends LineBlockRenderData {
@@ -96,6 +101,16 @@ export class LyricsLineRenderData extends LineRenderData<LyricsBlockRenderData> 
     children: LyricsBlockRenderData[] = [],
   ) {
     super(children);
+  }
+
+  public get isEmpty() {
+    return this.children.every((x) => x.isEmpty);
+  }
+
+  public static Placeholder(start: number, end: number) {
+    return new LyricsLineRenderData(undefined, [
+      new LyricsBlockRenderData(start, end, ''),
+    ]);
   }
 }
 
@@ -167,6 +182,10 @@ export class LyricsParagraphRenderData extends RenderDataBase {
   public override get end() {
     return this.end_;
   }
+
+  public get isEmpty() {
+    return this.children.every((x) => x.lyrics.isEmpty && x.calls.length === 0);
+  }
 }
 
 export class LyricsTrackRenderData extends Array<LyricsParagraphRenderData> {
@@ -177,6 +196,10 @@ export class LyricsTrackRenderData extends Array<LyricsParagraphRenderData> {
     } else {
       this.splice(idx, 0, data);
     }
+  }
+
+  public removeEmpty() {
+    _.remove(this, (x) => x.isEmpty);
   }
 }
 

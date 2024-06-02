@@ -14,5 +14,6 @@ export const REF_STR_PREFIX = '*';
 export const RES_KEYS = {
   LYRICS: 'lyrics',
   AUDIO: 'audio',
+  COVER: 'cover',
 };
 export const MAX_FRAMES = 1e9;

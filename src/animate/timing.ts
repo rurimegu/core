@@ -39,9 +39,6 @@ export class AnimateTiming {
     const hintCallBlock = Math.round(
       CeilToMultiple(this.config.minIntervals.hintCallBlock, beatFrames),
     );
-    const sepCallBlock = Math.round(
-      CeilToMultiple(this.config.minIntervals.sepCallBlock, beatFrames),
-    );
-    return { hintLyricsLine, hintCallBlock, sepCallBlock };
+    return { hintLyricsLine, hintCallBlock };
   }
 }

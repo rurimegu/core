@@ -4,7 +4,6 @@ import { ResourceMapping, ResourceMappingData } from './resources';
 export interface IntervalData {
   hintLyricsLine: number;
   hintCallBlock: number;
-  sepCallBlock: number;
 }
 
 export interface AnimateConfigData {
@@ -25,7 +24,6 @@ export class AnimateConfig implements ISerializable {
   public minIntervals: IntervalData = {
     hintLyricsLine: 180,
     hintCallBlock: 180,
-    sepCallBlock: 10,
   };
 
   //#region ISerializable

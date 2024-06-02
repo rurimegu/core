@@ -47,3 +47,5 @@ export function EnumValues(obj: any): string[] {
   return Object.keys(obj).map((key) => obj[key]);
 }
 export type SimpleFunc = () => void;
+
+export type Predicate<T> = (value: T) => boolean;

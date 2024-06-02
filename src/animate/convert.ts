@@ -10,7 +10,13 @@ import {
   LyricsTrack,
   SingAlongBlock,
 } from '../store';
-import { ApproxEqual, InvalidStateError, MAX_FRAMES, Typeof } from '../utils';
+import {
+  ApproxEqual,
+  InvalidStateError,
+  MAX_FRAMES,
+  Predicate,
+  Typeof,
+} from '../utils';
 import { AnimateConfig } from './config';
 import {
   AnnotationRenderData,
@@ -109,11 +115,7 @@ class CallLineConverter extends LineConverter<
       const block = track.children[i];
       if (block instanceof SingAlongBlock) break;
       const data = this.parent.convertCallBlock(block);
-      if (
-        blocks.length > 0 &&
-        data.start - blocks[blocks.length - 1].end >
-          this.parent.timing.minHintIntervalAt(block.start).sepCallBlock
-      )
+      if (blocks.length > 0 && data.start - blocks[blocks.length - 1].end > 1)
         break;
       blocks.push(data);
     }
@@ -213,12 +215,9 @@ class CallLineConverter extends LineConverter<
     let head = this.headBlock;
     while (head instanceof SingAlongBlock) {
       const block = this.parent.convertCallBlock(head);
-      const sepInterval = this.parent.timing.minHintIntervalAt(
-        block.start,
-      ).sepCallBlock;
       if (
         blocks.length > 0 &&
-        block.start - blocks[blocks.length - 1].end > sepInterval
+        block.start - blocks[blocks.length - 1].end > 1
       ) {
         // Separate sing along blocks due to long interval.
         break;
@@ -415,6 +414,33 @@ export class RenderDataConverter {
     }
   }
 
+  /**
+   * Merge lyrics and calls into paragraphs.
+   * @param main The main lyrics line.
+   * @param convs The converters for other tracks.
+   * @param onlyContained Whether to merge only if the line is fully contained.
+   * @returns The merged paragraph.
+   */
+  protected mergeLyricsParagraph(
+    main: LyricsLineRenderData,
+    convs: (CallLineConverter | LyricsLineConverter)[],
+    onlyContained: boolean,
+  ) {
+    const paragraph = new LyricsParagraphRenderData();
+    paragraph.addLine(main);
+    const predicate: Predicate<LineRenderData<any>> = onlyContained
+      ? (x) => x.end <= main.end
+      : (x) => x.start < main.end;
+    // Find the next line in other tracks.
+    for (const conv of convs) {
+      while (!conv.isFinished && predicate(conv.currentLine!)) {
+        paragraph.addLine(conv.currentLine!);
+        conv.moveLineNext();
+      }
+    }
+    return paragraph;
+  }
+
   public convertLyricsTracks(): LyricsTrackRenderData {
     const trackConvs = (
       this.lyrics.tracks.children.filter(
@@ -428,21 +454,29 @@ export class RenderDataConverter {
         'Main lyrics track not found. It must be the first track.',
       );
     }
+
+    // Add lyrics / calls before the first lyrics line.
     const ret = new LyricsTrackRenderData();
+    const current = main.currentLine!;
+    const firstLine = LyricsLineRenderData.Placeholder(0, current.start);
+    const paragraph = this.mergeLyricsParagraph(firstLine, trackConvs, true);
+    ret.push(paragraph);
+
+    // Add later lyrics / calls.
     while (!main.isFinished) {
-      const paragraph = new LyricsParagraphRenderData();
-      paragraph.addLine(main.currentLine!);
+      const current = main.currentLine!;
       main.moveLineNext();
       const nextStart = main.currentLine?.start ?? MAX_FRAMES;
-      // Find the next line in other tracks.
-      for (const conv of trackConvs) {
-        while (!conv.isFinished && conv.currentLine!.end <= nextStart) {
-          paragraph.addLine(conv.currentLine!);
-          conv.moveLineNext();
-        }
-      }
-      ret.push(paragraph);
+      ret.push(this.mergeLyricsParagraph(current, trackConvs, false));
+      // Add placeholder for empty interval.
+      const placeholder = LyricsLineRenderData.Placeholder(
+        current.end,
+        nextStart,
+      );
+      ret.push(this.mergeLyricsParagraph(placeholder, trackConvs, true));
     }
+    // Remove empty paragraphs.
+    ret.removeEmpty();
     return ret;
   }
 

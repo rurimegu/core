@@ -151,7 +151,7 @@ export class BpmStore implements ISerializable, IDeserializable {
 
   public audioTimeToBar(time: number): number {
     let bar = 0;
-    time -= this.offsetS;
+    time += this.offsetS;
 
     for (let i = 0; i < this.bpmPoints.length; i++) {
       const bpm = this.bpmPoints[i];

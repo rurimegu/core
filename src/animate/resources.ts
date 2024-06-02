@@ -21,6 +21,14 @@ export class ResourceMapping implements ISerializable {
     this.resources[RES_KEYS.AUDIO] = value;
   }
 
+  public get coverPath() {
+    return this.resources[RES_KEYS.COVER];
+  }
+
+  public set coverPath(value: string) {
+    this.resources[RES_KEYS.COVER] = value;
+  }
+
   //#region ISerializable
   public serialize() {
     return {
