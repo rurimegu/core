@@ -19,6 +19,7 @@ export abstract class TrackBlockBase<
 > extends ParentBlockBase<T> {
   @observable public text = 'New track';
   @observable public visibleRange = new FloatRange(0, MAX_BAR);
+  @observable public playSE = true;
 
   @override
   public override get start() {

@@ -16,7 +16,7 @@ import {
   IWithId,
 } from '../utils/types';
 import { TagsStore, LyricsTag, TagsRef } from '../store/tags';
-import { AnnotationBlock, LyricsBlock } from '../store';
+import { AnnotationBlock, LyricsBlock, TrackBlockBase } from '../store';
 import { MRef, UFRef, refManager } from '../utils';
 
 //#region Command Base
@@ -91,7 +91,6 @@ export class CommandSet extends Command {
   }
 
   public execute(): void {
-    console.log('execute', this.commands);
     for (const command of this.commands) {
       command.execute();
     }
@@ -214,13 +213,6 @@ export class MergeBlocksCommand<
 
   public execute(): void {
     const parent = GetValue(this.parent);
-    console.log(
-      'prev',
-      parent.children.slice(
-        this.blockIdxStart,
-        this.blockIdxStart + this.count,
-      ),
-    );
     const newBlock = parent.children[this.blockIdxStart].newCopy();
     for (
       let i = this.blockIdxStart + 1;
@@ -230,7 +222,6 @@ export class MergeBlocksCommand<
       newBlock.mergeRight(parent.children[i].newCopy());
     }
     this.prevBlocks = parent.splice(this.blockIdxStart, this.count, newBlock);
-    console.log('new', this.prevBlocks);
   }
 
   public undo(): void {
@@ -385,6 +376,26 @@ export class MergeUFCommand<T extends IWithId> extends Command {
   public undo(): void {
     this.undoFunc();
     this.undoFunc = NoopFn;
+  }
+}
+
+export class SetPlaySECommand<T extends BlockBase> extends Command {
+  protected prevPlaySE = false;
+
+  public constructor(
+    public readonly track: TrackBlockBase<T>,
+    public readonly playSE: boolean,
+  ) {
+    super();
+  }
+
+  public execute(): void {
+    this.prevPlaySE = this.track.playSE;
+    this.track.playSE = this.playSE;
+  }
+
+  public undo(): void {
+    this.track.playSE = this.prevPlaySE;
   }
 }
 //#endregion Call Commands
