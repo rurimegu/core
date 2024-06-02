@@ -169,7 +169,11 @@ export class LyricsBlock
   }
 
   public newCopy(): LyricsBlock {
-    return LyricsBlock.Create(this.text, this.children.slice());
+    const newChildren = this.children.map((c) => c.newCopy());
+    const ret = LyricsBlock.Create(this.text, newChildren);
+    ret.tags.deserialize(this.tags.tagIds.slice());
+    ret.newline = this.newline;
+    return ret;
   }
 
   //#region ISerializable
@@ -189,4 +193,5 @@ export class LyricsBlock
     this.newline = Boolean(data.newline);
     if (data.tags) this.tags.deserialize(data.tags);
   }
+  //#endregion ISerializable
 }

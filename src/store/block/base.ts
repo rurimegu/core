@@ -124,6 +124,9 @@ export abstract class BlockBase
 
   @computed
   public get parent(): ParentBlockBase<BlockBase> | undefined {
+    if (this.parent_?.indexOf(this) === -1) {
+      console.warn(`Parent ${this.parent_?.id} does not contain ${this.id}`);
+    }
     return this.parent_;
   }
 

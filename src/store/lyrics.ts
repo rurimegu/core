@@ -1,6 +1,6 @@
 import { BpmStore, BpmStoreData } from './bpm';
 import { Tracks, TracksData } from './block/tracks';
-import { PersistStore, PersistStoreData } from './persist';
+import { PersistStoreData, persistStore } from './persist';
 import { LyricsTagsData, TagsStore } from './tags';
 import { IDeserializable, ISerializable } from '../utils/io';
 import { DeserializeBlock } from './block/registry';
@@ -24,7 +24,7 @@ export class LyricsStore implements ISerializable, IDeserializable {
   public constructor(
     public readonly tracks = new Tracks(),
     public readonly bpm = new BpmStore(),
-    public readonly persist = new PersistStore(),
+    public readonly persist = persistStore,
     public readonly tags = new TagsStore(),
     public readonly meta = new LyricsMetadata(),
   ) {

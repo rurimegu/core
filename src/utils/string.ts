@@ -1,7 +1,6 @@
 import { eastAsianWidth } from 'get-east-asian-width';
 import { LYRICS_SEP } from './constants';
 
-const LEFT_PARENTHESIS = ['(', '[', '{', '（', '［', '｛'];
 const PUNCTUATIONS = ['ー'];
 const JPN_SMALL = 'ぁぃぅぇぉっゃゅょァィゥェォッャュョ';
 
@@ -45,7 +44,7 @@ export function IsPunctuation(char: string) {
 }
 
 export function IsLeftParenthesis(char: string) {
-  return LEFT_PARENTHESIS.includes(char);
+  return /^\p{Ps}$/u.test(char);
 }
 
 export function IsSmallKana(char: string) {
@@ -62,6 +61,8 @@ export function IsKana(char: string) {
  */
 export function SplitWords(text: string): string[] {
   text = text.replace(/[ 　]+/g, ' ');
+
+  // Split words with furigana
   let word = '';
   const words: string[] = [];
   // Push current word to the list and reset the word buffer
@@ -72,41 +73,78 @@ export function SplitWords(text: string): string[] {
     }
   }
   for (let i = 0; i < text.length; i++) {
-    const code = text.charCodeAt(i);
     const c = text[i];
-    if (c === ' ' || c === '\n') {
-      // Push the current word and add a space
+
+    // Handle left parenthesis.
+    if (IsLeftParenthesis(c)) {
+      // Left parenthesis can be used to start a new word
       pushWord();
-      if (words.length === 0 || words[words.length - 1] !== c) {
+      word = c;
+      continue;
+    }
+
+    // Other punctuations.
+    if (IsPunctuation(c)) {
+      pushWord();
+      if (words.length > 0) {
+        words[words.length - 1] += c;
+      } else {
         words.push(c);
       }
       continue;
     }
-    // TODO: Split small kana
-    if (IsHalfWidth(code) || (IsPunctuation(c) && !IsLeftParenthesis(c))) {
-      // Continue the current word
-      word += c;
+
+    // Handle spaces.
+    let j = i;
+    while (/^\s$/u.test(text[j])) j++;
+    if (j !== i) {
+      // Push the current word and add a space
+      pushWord();
+      words.push(' ');
+      i = j - 1;
       continue;
     }
-    // East Asian character or left parenthesis
-    if (!IsLeftParenthesis(word)) pushWord();
+
+    // English words.
+    j = i;
+    while (
+      j < text.length &&
+      !/^\s$/u.test(text[j]) &&
+      IsHalfWidth(text.charCodeAt(j))
+    )
+      j++;
+    if (j !== i) {
+      word += text.slice(i, j);
+      pushWord();
+      i = j - 1;
+      continue;
+    }
+
+    // Kana.
+    if (IsKana(c)) {
+      j = i + 1;
+      while (IsSmallKana(text[j]) || text[j] === 'ー') j++;
+      word += text.slice(i, j);
+      pushWord();
+      i = j - 1;
+      continue;
+    }
+
     word += c;
+    pushWord();
   }
   pushWord();
-  console.log('Split words:', words);
   return words;
 }
 
 export function SplitLyrics(text: string): string {
-  return text
-    .split(/[\r\n]/g)
-    .map((line) =>
-      line
-        .split(LYRICS_SEP)
-        .map((s) => SplitWords(s).join(LYRICS_SEP))
-        .join(LYRICS_SEP),
-    )
-    .join('\n');
+  const lines = text.split(/[\r\n]/g).map((line) => {
+    return line
+      .split(LYRICS_SEP)
+      .map((s) => SplitWords(s).join(LYRICS_SEP))
+      .join(LYRICS_SEP);
+  });
+  return lines.join('\n');
 }
 
 export function SplitLyricsArray(text: string): string[] {

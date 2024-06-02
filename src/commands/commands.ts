@@ -91,13 +91,14 @@ export class CommandSet extends Command {
   }
 
   public execute(): void {
+    console.log('execute', this.commands);
     for (const command of this.commands) {
       command.execute();
     }
   }
 
   public undo(): void {
-    for (const command of this.commands.reverse()) {
+    for (const command of this.commands.slice().reverse()) {
       command.undo();
     }
   }
@@ -213,15 +214,23 @@ export class MergeBlocksCommand<
 
   public execute(): void {
     const parent = GetValue(this.parent);
+    console.log(
+      'prev',
+      parent.children.slice(
+        this.blockIdxStart,
+        this.blockIdxStart + this.count,
+      ),
+    );
     const newBlock = parent.children[this.blockIdxStart].newCopy();
     for (
       let i = this.blockIdxStart + 1;
       i < this.blockIdxStart + this.count;
       i++
     ) {
-      newBlock.mergeRight(parent.children[i]);
+      newBlock.mergeRight(parent.children[i].newCopy());
     }
     this.prevBlocks = parent.splice(this.blockIdxStart, this.count, newBlock);
+    console.log('new', this.prevBlocks);
   }
 
   public undo(): void {

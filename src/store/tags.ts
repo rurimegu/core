@@ -81,7 +81,7 @@ export class TagsStore implements ISerializable {
   public constructor() {
     makeObservable(this);
     // TODO: Remove
-    const tags = RangeArray(60).map(() => new LyricsTag());
+    const tags = RangeArray(9).map(() => new LyricsTag());
     runInAction(() => {
       tags[0].name = '大沢瑠璃乃';
       tags[0].color = Color.FromHex('#E7609E')!;
