@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import { LyricsMetadata } from '../store';
-import { Bisect, Color, InvalidStateError, MAX_FRAMES } from '../utils';
+import { Bisect, Color, MAX_FRAMES } from '../utils';
 
 export abstract class RenderDataBase {
   /** Start time in frames. */
@@ -52,6 +52,10 @@ export class LyricsBlockRenderData extends LineBlockRenderData {
 
   public get isEmpty() {
     return !this.text && this.children.length === 0;
+  }
+
+  public static Space(start: number, end: number) {
+    return new LyricsBlockRenderData(start, end, ' ');
   }
 }
 
@@ -129,7 +133,7 @@ export class CallLineRenderData extends LineRenderData<CallBlockRenderData> {
 
 export class CommentLineRenderData extends LineRenderData<CommentRenderData> {}
 
-export class LyricsAndCallRenderData extends RenderDataBase {
+export class LyricsParagraphRenderData extends RenderDataBase {
   public constructor(
     public readonly lyrics: LyricsLineRenderData,
     public readonly calls: CallLineRenderData[] = [],
@@ -147,59 +151,18 @@ export class LyricsAndCallRenderData extends RenderDataBase {
       this.calls[this.calls.length - 1]?.end ?? 0,
     );
   }
-}
-
-export class LyricsParagraphRenderData extends RenderDataBase {
-  protected start_ = MAX_FRAMES;
-  protected end_ = 0;
-  public readonly children: LyricsAndCallRenderData[] = [];
-
-  public constructor() {
-    super();
-  }
-
-  public get main() {
-    return this.children[0];
-  }
-
-  public addLine(line: LyricsLineRenderData | CallLineRenderData) {
-    if (line instanceof LyricsLineRenderData) {
-      this.children.push(new LyricsAndCallRenderData(line));
-    } else {
-      if (this.children.length === 0) {
-        throw new InvalidStateError('Cannot add call line before lyrics line.');
-      }
-      this.children[this.children.length - 1].calls.push(line);
-    }
-    this.start_ = Math.min(this.start_, line.start);
-    this.end_ = Math.max(this.end_, line.end);
-  }
-
-  public override get start() {
-    return this.start_;
-  }
-
-  public override get end() {
-    return this.end_;
-  }
 
   public get isEmpty() {
-    return this.children.every((x) => x.lyrics.isEmpty && x.calls.length === 0);
+    return (
+      this.lyrics.isEmpty && this.calls.every((x) => x.children.length === 0)
+    );
   }
 }
 
 export class LyricsTrackRenderData extends Array<LyricsParagraphRenderData> {
-  public addLine(data: LyricsParagraphRenderData) {
-    const idx = Bisect(this, (x) => x.start <= data.start);
-    if (idx >= this.length) {
-      this.push(data);
-    } else {
-      this.splice(idx, 0, data);
-    }
-  }
-
-  public removeEmpty() {
+  public finalize() {
     _.remove(this, (x) => x.isEmpty);
+    this.sort((a, b) => a.start - b.start);
   }
 }
 

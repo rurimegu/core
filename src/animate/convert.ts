@@ -1,5 +1,6 @@
 import {
   AnnotationBlock,
+  BlockBase,
   CallBlock,
   CallBlockBase,
   CallsTrack,
@@ -8,6 +9,7 @@ import {
   LyricsBlock,
   LyricsStore,
   LyricsTrack,
+  ParentBlockBase,
   SingAlongBlock,
 } from '../store';
 import {
@@ -16,6 +18,7 @@ import {
   MAX_FRAMES,
   Predicate,
   Typeof,
+  ValueError,
 } from '../utils';
 import { AnimateConfig } from './config';
 import {
@@ -25,18 +28,17 @@ import {
   CommentRenderData,
   CommentTrackRenderData,
   LineRenderData,
+  LyricsParagraphRenderData,
   LyricsBlockRenderData,
   LyricsLineRenderData,
-  LyricsParagraphRenderData,
   LyricsRenderData,
   LyricsTrackRenderData,
   RenderDataBase,
 } from './render-data';
 import { AnimateTiming } from './timing';
 
-type LineTrack = LyricsTrack | CallsTrack;
-
 abstract class LineConverter<
+  B extends BlockBase,
   U extends RenderDataBase,
   T extends LineRenderData<U>,
 > {
@@ -45,7 +47,7 @@ abstract class LineConverter<
 
   constructor(
     public readonly parent: RenderDataConverter,
-    public track: LineTrack,
+    public track: ParentBlockBase<B>,
   ) {
     this.moveLineNext();
   }
@@ -76,6 +78,7 @@ abstract class LineConverter<
 }
 
 class LyricsLineConverter extends LineConverter<
+  LyricsBlock,
   LyricsBlockRenderData,
   LyricsLineRenderData
 > {
@@ -84,7 +87,7 @@ class LyricsLineConverter extends LineConverter<
       this.lastLine = undefined;
       return;
     }
-    const head = this.headBlock as LyricsBlock;
+    let head = this.headBlock!;
     const blocks = this.parent.convertLyricsBlock(head);
     const firstBlock = blocks[0];
     // Calculate if hint is needed.
@@ -95,9 +98,14 @@ class LyricsLineConverter extends LineConverter<
       firstBlock.start - (this.lastLine?.end ?? 0) >= minInterval;
     const hint = shouldHint ? minInterval : 0;
     // Collect all blocks in the same line until a newline block.
-    while (!head.newline) {
-      if (!this.moveHeadNext()) break;
-      const head = this.headBlock as LyricsBlock;
+    while (this.moveHeadNext()) {
+      if (head.space) {
+        // Add space.
+        const last = blocks[blocks.length - 1];
+        blocks.push(LyricsBlockRenderData.Space(last.end, last.end));
+      }
+      if (head.newline) break;
+      head = this.headBlock!;
       blocks.push(...this.parent.convertLyricsBlock(head));
     }
     this.lastLine = new LyricsLineRenderData(hint, blocks);
@@ -105,19 +113,18 @@ class LyricsLineConverter extends LineConverter<
 }
 
 class CallLineConverter extends LineConverter<
+  CallBlockBase,
   CallBlockRenderData,
   CallLineRenderData
 > {
-  protected calcSimpleCallBlocks(startIdx: number): CallBlockRenderData[] {
-    const track = this.track as CallsTrack;
+  protected calcSimpleCallBlocks(): CallBlockRenderData[] {
     const blocks = new Array<CallBlockRenderData>();
-    for (let i = startIdx; i < track.length; i++) {
-      const block = track.children[i];
-      if (block instanceof SingAlongBlock) break;
+    while (!this.isHeadFinished) {
+      const block = this.headBlock!;
       const data = this.parent.convertCallBlock(block);
-      if (blocks.length > 0 && data.start - blocks[blocks.length - 1].end > 1)
-        break;
       blocks.push(data);
+      this.moveHeadNext();
+      if (block.newline) break;
     }
     return blocks;
   }
@@ -138,7 +145,7 @@ class CallLineConverter extends LineConverter<
 
     if (possibleRepeats.length <= 1) {
       // No repeats.
-      return [this.calcSimpleCallBlocks(startIdx), [0]];
+      return [this.calcSimpleCallBlocks(), [0]];
     }
 
     const endIdx = track.children.indexOf(possibleRepeats[1]);
@@ -148,7 +155,7 @@ class CallLineConverter extends LineConverter<
 
     if (blocks.some((b) => b.isSingAlong)) {
       // Sing along blocks should not be repeated.
-      return [this.calcSimpleCallBlocks(startIdx), [0]];
+      return [this.calcSimpleCallBlocks(), [0]];
     }
 
     const repeatInterval =
@@ -157,9 +164,10 @@ class CallLineConverter extends LineConverter<
     const repeatOffsets = new Array<number>();
 
     // Find max repeats.
+    let encounteredNewline = false;
     for (
       let i = startIdx;
-      i + blocks.length <= track.length;
+      i + blocks.length <= track.length && !encounteredNewline;
       i += blocks.length
     ) {
       let isRepeat = true;
@@ -177,6 +185,14 @@ class CallLineConverter extends LineConverter<
         if (original.group !== current.group) {
           isRepeat = false;
           break;
+        }
+        // Repeated blocks should not have line breaks.
+        if (current.newline) {
+          encounteredNewline = true;
+          if (j !== blocks.length - 1) {
+            isRepeat = false;
+            break;
+          }
         }
         // Check timings match.
         const timeOffset =
@@ -207,26 +223,8 @@ class CallLineConverter extends LineConverter<
       firstBlock.start - (this.lastLine?.end ?? 0) >= minInterval;
     const hint = shouldHint ? minInterval : 0;
     const [blocks, repeatOffsets] = this.calcRepeatOffsets(this.head);
+    this.head += blocks.length * repeatOffsets.length;
     return new CallLineRenderData(hint, blocks, repeatOffsets);
-  }
-
-  protected getSingAlongBlocks() {
-    const blocks = new Array<CallBlockRenderData>();
-    let head = this.headBlock;
-    while (head instanceof SingAlongBlock) {
-      const block = this.parent.convertCallBlock(head);
-      if (
-        blocks.length > 0 &&
-        block.start - blocks[blocks.length - 1].end > 1
-      ) {
-        // Separate sing along blocks due to long interval.
-        break;
-      }
-      blocks.push(block);
-      if (!this.moveHeadNext()) break;
-      head = this.headBlock;
-    }
-    return blocks;
   }
 
   public override moveLineNext() {
@@ -236,7 +234,7 @@ class CallLineConverter extends LineConverter<
     }
     const head = this.headBlock as CallBlockBase;
     if (head instanceof SingAlongBlock) {
-      const blocks = this.getSingAlongBlocks();
+      const blocks = this.calcSimpleCallBlocks();
       const repeatOffsets = [0];
       // No need to hint for sing along blocks.
       this.lastLine = new CallLineRenderData(0, blocks, repeatOffsets);
@@ -246,7 +244,10 @@ class CallLineConverter extends LineConverter<
   }
 }
 
-function createLineConverter(parent: RenderDataConverter, track: LineTrack) {
+function createLineConverter(
+  parent: RenderDataConverter,
+  track: LyricsTrack | CallsTrack,
+) {
   if (track instanceof LyricsTrack) {
     return new LyricsLineConverter(parent, track);
   } else if (track instanceof CallsTrack) {
@@ -303,19 +304,17 @@ export class RenderDataConverter {
       text.length - rightPunctuations.length,
     );
     // Just one frame for punctuation.
-    let startFrame = this.timing.barToFrame(block.start);
-    let endFrame = this.timing.barToFrame(block.end);
-    if (rightPunctuations) endFrame -= 1;
+    const startFrame = this.timing.barToFrame(block.start);
+    const endFrame = this.timing.barToFrame(block.end);
     if (leftPunctuations) {
       ret.push(
         new LyricsBlockRenderData(
           startFrame,
-          startFrame + 1,
+          startFrame,
           leftPunctuations,
           colors,
         ),
       );
-      startFrame += 1;
     }
     ret.push(
       new LyricsBlockRenderData(
@@ -331,7 +330,7 @@ export class RenderDataConverter {
       ret.push(
         new LyricsBlockRenderData(
           endFrame,
-          endFrame + 1,
+          endFrame,
           rightPunctuations,
           colors,
         ),
@@ -421,62 +420,82 @@ export class RenderDataConverter {
    * @param onlyContained Whether to merge only if the line is fully contained.
    * @returns The merged paragraph.
    */
-  protected mergeLyricsParagraph(
+  protected processNextParagraph(
     main: LyricsLineRenderData,
-    convs: (CallLineConverter | LyricsLineConverter)[],
+    convs: CallLineConverter[],
     onlyContained: boolean,
   ) {
-    const paragraph = new LyricsParagraphRenderData();
-    paragraph.addLine(main);
+    const paragraph = new LyricsParagraphRenderData(main);
     const predicate: Predicate<LineRenderData<any>> = onlyContained
       ? (x) => x.end <= main.end
       : (x) => x.start < main.end;
     // Find the next line in other tracks.
     for (const conv of convs) {
       while (!conv.isFinished && predicate(conv.currentLine!)) {
-        paragraph.addLine(conv.currentLine!);
+        paragraph.calls.push(conv.currentLine!);
         conv.moveLineNext();
       }
     }
     return paragraph;
   }
 
+  protected processLyricsAndCalls(
+    lyrics: LyricsLineConverter,
+    calls: CallLineConverter[],
+  ): LyricsParagraphRenderData[] {
+    let current = lyrics.currentLine;
+    if (!current) return [];
+    const ret = new Array<LyricsParagraphRenderData>();
+    const firstLine = LyricsLineRenderData.Placeholder(0, current.start);
+    ret.push(this.processNextParagraph(firstLine, calls, true));
+    while (!lyrics.isFinished) {
+      lyrics.moveLineNext();
+      const nextStart = lyrics.currentLine?.start ?? MAX_FRAMES;
+      ret.push(this.processNextParagraph(current!, calls, false));
+      const placeholder = LyricsLineRenderData.Placeholder(
+        current!.end,
+        nextStart,
+      );
+      ret.push(this.processNextParagraph(placeholder, calls, true));
+      current = lyrics.currentLine;
+    }
+    return ret;
+  }
+
   public convertLyricsTracks(): LyricsTrackRenderData {
     const trackConvs = (
       this.lyrics.tracks.children.filter(
         (x) => x instanceof LyricsTrack || x instanceof CallsTrack,
-      ) as LineTrack[]
+      ) as (LyricsTrack | CallsTrack)[]
     ).map((x) => createLineConverter(this, x));
-    // Find the main lyrics track.
-    const main = trackConvs.shift();
-    if (!main || !(main instanceof LyricsLineConverter)) {
-      throw new InvalidStateError(
-        'Main lyrics track not found. It must be the first track.',
-      );
-    }
 
     // Add lyrics / calls before the first lyrics line.
     const ret = new LyricsTrackRenderData();
-    const current = main.currentLine!;
-    const firstLine = LyricsLineRenderData.Placeholder(0, current.start);
-    const paragraph = this.mergeLyricsParagraph(firstLine, trackConvs, true);
-    ret.push(paragraph);
+    let mainLyrics: LyricsLineConverter | undefined;
+    const calls = new Array<CallLineConverter>();
 
-    // Add later lyrics / calls.
-    while (!main.isFinished) {
-      const current = main.currentLine!;
-      main.moveLineNext();
-      const nextStart = main.currentLine?.start ?? MAX_FRAMES;
-      ret.push(this.mergeLyricsParagraph(current, trackConvs, false));
-      // Add placeholder for empty interval.
-      const placeholder = LyricsLineRenderData.Placeholder(
-        current.end,
-        nextStart,
-      );
-      ret.push(this.mergeLyricsParagraph(placeholder, trackConvs, true));
+    const processCurrentLyricsAndCalls = () => {
+      if (mainLyrics) {
+        // Process lyrics and calls.
+        ret.push(...this.processLyricsAndCalls(mainLyrics, calls));
+      } else if (calls.length > 0) {
+        throw new ValueError('Call tracks must not appear before lyrics.');
+      }
+    };
+
+    for (const conv of trackConvs) {
+      if (conv instanceof LyricsLineConverter) {
+        processCurrentLyricsAndCalls();
+        mainLyrics = conv;
+        continue;
+      }
+      if (conv instanceof CallLineConverter) {
+        calls.push(conv);
+        continue;
+      }
     }
-    // Remove empty paragraphs.
-    ret.removeEmpty();
+    processCurrentLyricsAndCalls();
+    ret.finalize();
     return ret;
   }
 

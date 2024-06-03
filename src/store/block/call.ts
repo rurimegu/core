@@ -48,7 +48,7 @@ export interface SingAlongBlockData extends BlockData {
 
 export abstract class CallBlockBase
   extends BlockBase
-  implements IWithText, IWithBottomText
+  implements IWithText, IWithBottomText, IWithSpacing
 {
   @observable
   protected text_: string = CallType.Hi;
@@ -57,6 +57,13 @@ export abstract class CallBlockBase
     super(id);
     makeObservable(this);
   }
+
+  //#region IWithSpacing
+  abstract get newline(): boolean;
+  abstract set newline(value: boolean);
+  abstract get space(): boolean;
+  abstract set space(value: boolean);
+  //#endregion IWithSpacing
 
   @override
   public override get parent() {
