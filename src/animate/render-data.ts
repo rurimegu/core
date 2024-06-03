@@ -23,8 +23,6 @@ export class AnnotationRenderData extends LineBlockRenderData {
     public readonly start: number,
     public readonly end: number,
     text: string,
-    /** Colors. Will be empty if not provided. */
-    public readonly colors: Color[] = [],
   ) {
     super(text);
   }
@@ -54,8 +52,8 @@ export class LyricsBlockRenderData extends LineBlockRenderData {
     return !this.text && this.children.length === 0;
   }
 
-  public static Space(start: number, end: number) {
-    return new LyricsBlockRenderData(start, end, ' ');
+  public static Space(start: number, end: number, fullWidth = false) {
+    return new LyricsBlockRenderData(start, end, fullWidth ? '　' : ' ');
   }
 }
 
@@ -195,7 +193,7 @@ export class LyricsRenderData extends RenderDataBase {
   public constructor(
     public readonly end: number,
     public readonly meta: LyricsMetadata,
-    public readonly lines = new LyricsTrackRenderData(),
+    public readonly lyrics = new LyricsTrackRenderData(),
     public readonly comments = new CommentTrackRenderData(),
   ) {
     super();

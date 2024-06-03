@@ -15,6 +15,7 @@ import {
 import {
   ApproxEqual,
   InvalidStateError,
+  IsFullWidth,
   MAX_FRAMES,
   Predicate,
   Typeof,
@@ -102,7 +103,15 @@ class LyricsLineConverter extends LineConverter<
       if (head.space) {
         // Add space.
         const last = blocks[blocks.length - 1];
-        blocks.push(LyricsBlockRenderData.Space(last.end, last.end));
+        blocks.push(
+          LyricsBlockRenderData.Space(
+            last.end,
+            last.end,
+            last.text.length > 0
+              ? IsFullWidth(last.text.charCodeAt(last.text.length - 1))
+              : true,
+          ),
+        );
       }
       if (head.newline) break;
       head = this.headBlock!;
@@ -293,16 +302,11 @@ export class RenderDataConverter {
     // Handle text.
     let text = block.bottomText;
     let leftPunctuations = /^\p{P}*/u.exec(text)?.[0] ?? '';
-    let rightPunctuations = /\p{P}*$/u.exec(text)?.[0] ?? '';
     if (leftPunctuations === text) {
       // Punctuation only.
       leftPunctuations = '';
-      rightPunctuations = '';
     }
-    text = text.substring(
-      leftPunctuations.length,
-      text.length - rightPunctuations.length,
-    );
+    text = text.substring(leftPunctuations.length);
     // Just one frame for punctuation.
     const startFrame = this.timing.barToFrame(block.start);
     const endFrame = this.timing.barToFrame(block.end);
@@ -326,16 +330,6 @@ export class RenderDataConverter {
         singAlong,
       ),
     );
-    if (rightPunctuations) {
-      ret.push(
-        new LyricsBlockRenderData(
-          endFrame,
-          endFrame,
-          rightPunctuations,
-          colors,
-        ),
-      );
-    }
     return ret;
   }
 
@@ -503,11 +497,11 @@ export class RenderDataConverter {
     const comments = this.convertCommentTracks(
       Typeof(this.lyrics.tracks.children, CommentTrack),
     );
-    const lines = this.convertLyricsTracks();
+    const lyrics = this.convertLyricsTracks();
     const ret = new LyricsRenderData(
       this.timing.maxFrame,
       this.lyrics.meta,
-      lines,
+      lyrics,
       comments,
     );
     return ret;
