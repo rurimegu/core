@@ -28,16 +28,21 @@ export interface IWithText {
 export interface IWithBottomText {
   get bottomText(): string;
 }
-export interface IWithNewline {
+export interface IWithSpacing {
   get newline(): boolean;
   set newline(value: boolean);
+  get space(): boolean;
+  set space(value: boolean);
 }
 export function Typeof<U>(arr: any[], type: Constructor<U>): U[] {
   return arr.filter((x) => x instanceof type) as U[];
 }
-export function RemoveUndefined<T extends Record<symbol, any>>(obj: T) {
+export function RemoveUndefined<T extends Record<symbol, any>>(
+  obj: T,
+  removeFalse = false,
+): T {
   for (const key in obj) {
-    if (obj[key] === undefined) {
+    if (obj[key] === undefined || (removeFalse && obj[key] === false)) {
       delete obj[key];
     }
   }

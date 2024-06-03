@@ -10,7 +10,7 @@ import {
   GetValue,
   ICopyable,
   IProviderOrValue,
-  IWithNewline,
+  IWithSpacing,
   SimpleFunc,
   NoopFn,
   IWithId,
@@ -340,7 +340,7 @@ export class SetNewlineCommand extends Command {
   protected prevNewline = false;
 
   public constructor(
-    public readonly block: IProviderOrValue<IWithNewline>,
+    public readonly block: IProviderOrValue<IWithSpacing>,
     public readonly newline: boolean,
   ) {
     super();
@@ -354,6 +354,27 @@ export class SetNewlineCommand extends Command {
 
   public undo(): void {
     GetValue(this.block).newline = this.prevNewline;
+  }
+}
+
+export class SetSpaceCommand extends Command {
+  protected prevSpace = false;
+
+  public constructor(
+    public readonly block: IProviderOrValue<IWithSpacing>,
+    public readonly space: boolean,
+  ) {
+    super();
+  }
+
+  public execute(): void {
+    const block = GetValue(this.block);
+    this.prevSpace = block.space;
+    block.space = this.space;
+  }
+
+  public undo(): void {
+    GetValue(this.block).space = this.prevSpace;
   }
 }
 //#endregion Block Commands

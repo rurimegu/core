@@ -16,7 +16,7 @@ import {
   ParentWithTextData,
 } from './base';
 import { IWithText } from '../../utils/types';
-import { CallBlockBase } from './call';
+import { CallBlock, CallBlockBase, SingAlongBlock } from './call';
 import { CommentBlock } from './comment';
 
 export type TrackBlock = LyricsTrack | CallsTrack | CommentTrack;
@@ -65,6 +65,11 @@ export abstract class TrackBlockBase<
     return ret;
   }
 
+  @computed({ equals: comparer.shallow })
+  public get visibleSpaces(): T[] {
+    return [];
+  }
+
   //#region ISerializable
   public override serialize(): TrackBlockData {
     return {
@@ -96,9 +101,9 @@ export class LyricsTrack
     makeObservable(this);
   }
 
-  @computed({ equals: comparer.shallow })
-  public get visibleNewlines() {
-    return this.visibleBlocks.filter((block) => block.newline);
+  @override
+  public get visibleSpaces() {
+    return this.visibleBlocks.filter((block) => block.newline || block.space);
   }
 }
 
@@ -109,6 +114,16 @@ export class CallsTrack extends TrackBlockBase<CallBlockBase> {
     super(id);
     makeObservable(this);
     this.muted = true;
+  }
+
+  @override
+  public get visibleSpaces() {
+    return this.visibleBlocks.filter((block) => {
+      if (block instanceof CallBlock || block instanceof SingAlongBlock) {
+        return block.newline || block.space;
+      }
+      return false;
+    }) as (CallBlock | SingAlongBlock)[];
   }
 }
 

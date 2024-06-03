@@ -14,6 +14,7 @@ import {
   RemoveUndefined,
   IWithBottomText,
   UserError,
+  IWithSpacing,
 } from '../../utils';
 import { MRef, UFRef, UFRefData } from '../../utils/ds';
 import { LyricsBlock } from './lyrics';
@@ -34,6 +35,8 @@ export interface CallBlockData extends BlockData {
   end: string;
   ref: UFRefData;
   text: string;
+  newline?: boolean;
+  space?: boolean;
 }
 
 export interface SingAlongBlockData extends BlockData {
@@ -72,7 +75,7 @@ export abstract class CallBlockBase
   }
 }
 
-export class CallBlock extends CallBlockBase {
+export class CallBlock extends CallBlockBase implements IWithSpacing {
   public override readonly type: BlockType = BlockType.Call;
 
   // Union find ref to self.
@@ -83,6 +86,14 @@ export class CallBlock extends CallBlockBase {
 
   @observable
   public end = Timing.INVALID;
+
+  //#region IWithSpacing
+  @observable
+  public newline = false;
+
+  @observable
+  public space = false;
+  //#endregion IWithSpacing
 
   @override
   public override get parent() {
@@ -166,13 +177,18 @@ export class CallBlock extends CallBlockBase {
 
   //#region ISerializable
   public override serialize(): CallBlockData {
-    return RemoveUndefined({
-      ...super.serialize(),
-      start: this.start.serialize(),
-      end: this.end.serialize(),
-      ref: this.ref_.serialize(),
-      text: this.selfText,
-    });
+    return RemoveUndefined(
+      {
+        ...super.serialize(),
+        start: this.start.serialize(),
+        end: this.end.serialize(),
+        ref: this.ref_.serialize(),
+        text: this.selfText,
+        newline: this.newline,
+        space: this.space,
+      },
+      true,
+    );
   }
 
   public override deserialize(data: CallBlockData & BlockDataHelpers) {
@@ -181,11 +197,13 @@ export class CallBlock extends CallBlockBase {
     this.end = Timing.Deserialize(data.end);
     this.ref_.deserialize(data.ref, data.context);
     this.text_ = data.text;
+    this.newline = Boolean(data.newline);
+    this.space = Boolean(data.space);
   }
   //#endregion ISerializable
 }
 
-export class SingAlongBlock extends CallBlockBase {
+export class SingAlongBlock extends CallBlockBase implements IWithSpacing {
   public override readonly type: BlockType = BlockType.SingAlong;
   public override readonly resizable = false;
 
@@ -232,6 +250,24 @@ export class SingAlongBlock extends CallBlockBase {
   public override resizeCmd(): IResizeAction {
     throw new UserError('Cannot resize SingAlongBlock');
   }
+
+  //#region IWithSpacing
+  public get newline() {
+    return this.lyricsBlock?.newline ?? false;
+  }
+
+  public set newline(value: boolean) {
+    this.lyricsBlock!.newline = value;
+  }
+
+  public get space() {
+    return this.lyricsBlock?.space ?? false;
+  }
+
+  public set space(value: boolean) {
+    this.lyricsBlock!.space = value;
+  }
+  //#endregion IWithSpacing
 
   //#region ISerializable
   public override serialize(): SingAlongBlockData {

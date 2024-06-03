@@ -11,7 +11,7 @@ import { DataError } from '../../utils/error';
 import {
   ICopyable,
   IWithBottomText,
-  IWithNewline,
+  IWithSpacing,
   IWithText,
   RemoveUndefined,
 } from '../../utils/types';
@@ -30,7 +30,8 @@ import { ANNO_INDIC, LYRICS_SEP } from '../../utils/constants';
 
 export interface LyricsBlockData extends ParentOptionalTextData {
   tags: string[];
-  newline: boolean;
+  newline?: boolean;
+  space?: boolean;
 }
 
 export class LyricsBlock
@@ -40,7 +41,7 @@ export class LyricsBlock
     IWithText,
     IMergable<LyricsBlock>,
     IWithTags,
-    IWithNewline,
+    IWithSpacing,
     IWithBottomText
 {
   public override readonly type = BlockType.Lyrics;
@@ -49,6 +50,7 @@ export class LyricsBlock
 
   @observable public text = '';
   @observable public newline = false;
+  @observable public space = false;
 
   public readonly tags = LyricsBlock.tagsStore.createRef();
 
@@ -126,6 +128,10 @@ export class LyricsBlock
         continue;
       }
       if (word === ' ') {
+        if (blocks.length > 0) {
+          blocks[blocks.length - 1].space = true;
+          start = start.upperBound(alignDiv);
+        }
         start = start.upperBound(alignDiv);
         continue;
       }
@@ -173,17 +179,22 @@ export class LyricsBlock
     const ret = LyricsBlock.Create(this.text, newChildren);
     ret.tags.deserialize(this.tags.tagIds.slice());
     ret.newline = this.newline;
+    ret.space = this.space;
     return ret;
   }
 
   //#region ISerializable
   public override serialize(): LyricsBlockData {
-    return RemoveUndefined({
-      ...super.serialize(),
-      text: this.text || undefined,
-      tags: this.tags.serialize(),
-      newline: this.newline,
-    });
+    return RemoveUndefined(
+      {
+        ...super.serialize(),
+        text: this.text || undefined,
+        tags: this.tags.serialize(),
+        newline: this.newline,
+        space: this.space,
+      },
+      true,
+    );
   }
 
   @override
@@ -191,6 +202,7 @@ export class LyricsBlock
     super.deserialize(data);
     this.text = data.text ?? '';
     this.newline = Boolean(data.newline);
+    this.space = Boolean(data.space);
     if (data.tags) this.tags.deserialize(data.tags);
   }
   //#endregion ISerializable
