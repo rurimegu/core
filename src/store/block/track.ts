@@ -1,4 +1,11 @@
-import { comparer, computed, makeObservable, observable, override } from 'mobx';
+import {
+  action,
+  comparer,
+  computed,
+  makeObservable,
+  observable,
+  override,
+} from 'mobx';
 import { LyricsBlock } from './lyrics';
 import { FloatRange, MAX_BAR, Timing } from '../range';
 import {
@@ -14,12 +21,31 @@ import { CommentBlock } from './comment';
 
 export type TrackBlock = LyricsTrack | CallsTrack | CommentTrack;
 
+interface TrackBlockData extends ParentWithTextData {
+  seVolume: number;
+  muted: boolean;
+}
+
 export abstract class TrackBlockBase<
   T extends BlockBase,
 > extends ParentBlockBase<T> {
   @observable public text = 'New track';
   @observable public visibleRange = new FloatRange(0, MAX_BAR);
-  @observable public playSE = true;
+
+  //#region Audio
+  @observable public seVolume = 1;
+  @observable public muted = false;
+
+  @action
+  public setSeVolume(volume: number) {
+    this.seVolume = volume;
+  }
+
+  @action
+  public setMuted(muted: boolean) {
+    this.muted = muted;
+  }
+  //#endregion Audio
 
   @override
   public override get start() {
@@ -40,17 +66,21 @@ export abstract class TrackBlockBase<
   }
 
   //#region ISerializable
-  public override serialize(): ParentWithTextData {
+  public override serialize(): TrackBlockData {
     return {
       ...super.serialize(),
       text: this.text,
+      seVolume: this.seVolume,
+      muted: this.muted,
     };
   }
 
   @override
-  public override deserialize(data: ParentWithTextData & BlockDataHelpers) {
+  public override deserialize(data: TrackBlockData & BlockDataHelpers) {
     super.deserialize(data);
     this.text = data.text;
+    if (data.seVolume !== undefined) this.seVolume = data.seVolume;
+    this.muted = Boolean(data.muted);
   }
   //#endregion ISerializable
 }
@@ -78,6 +108,7 @@ export class CallsTrack extends TrackBlockBase<CallBlockBase> {
   public constructor(id?: string) {
     super(id);
     makeObservable(this);
+    this.muted = true;
   }
 }
 

@@ -54,8 +54,9 @@ export class LyricsStore implements ISerializable, IDeserializable {
       DeserializeBlock(this.tracks, data.tracks);
       if (data.bpm) this.bpm.deserialize(data.bpm);
       if (data.tags) this.tags.deserialize(data.tags);
-      if (data.persist) this.persist.deserialize(data.persist);
       if (data.meta) this.meta.deserialize(data.meta);
+      // Must be last since IDs might change during deserialization
+      if (data.persist) this.persist.deserialize(data.persist);
     });
   }
   //#endregion ISerializable

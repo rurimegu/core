@@ -16,7 +16,7 @@ import {
   IWithId,
 } from '../utils/types';
 import { TagsStore, LyricsTag, TagsRef } from '../store/tags';
-import { AnnotationBlock, LyricsBlock, TrackBlockBase } from '../store';
+import { AnnotationBlock, LyricsBlock } from '../store';
 import { MRef, UFRef, refManager } from '../utils';
 
 //#region Command Base
@@ -376,26 +376,6 @@ export class MergeUFCommand<T extends IWithId> extends Command {
   public undo(): void {
     this.undoFunc();
     this.undoFunc = NoopFn;
-  }
-}
-
-export class SetPlaySECommand<T extends BlockBase> extends Command {
-  protected prevPlaySE = false;
-
-  public constructor(
-    public readonly track: TrackBlockBase<T>,
-    public readonly playSE: boolean,
-  ) {
-    super();
-  }
-
-  public execute(): void {
-    this.prevPlaySE = this.track.playSE;
-    this.track.playSE = this.playSE;
-  }
-
-  public undo(): void {
-    this.track.playSE = this.prevPlaySE;
   }
 }
 //#endregion Call Commands

@@ -1,5 +1,11 @@
 import { observable, makeObservable, action, computed } from 'mobx';
-import { IClonable, IWithId, NoopFn, SimpleFunc } from './types';
+import {
+  IClonable,
+  IWithId,
+  NoopFn,
+  RemoveUndefined,
+  SimpleFunc,
+} from './types';
 import { InvalidStateError, ValueError } from './error';
 import { ISerializable } from './io';
 import { persistStore } from '../store';
@@ -274,6 +280,7 @@ export class MRef<T extends IWithId, U> implements IClonable<MRef<T, U>> {
 }
 
 export interface UFRefData {
+  id: string;
   ref?: string;
   value: string;
   size: number;
@@ -283,7 +290,8 @@ export interface UFRefData {
  * A reference maintained by union find.
  */
 export class UFRef<T extends IWithId> implements IWithId, ISerializable {
-  public readonly id: string;
+  @observable
+  protected id_: string;
 
   @observable
   protected ref_?: UFRef<T>;
@@ -302,9 +310,14 @@ export class UFRef<T extends IWithId> implements IWithId, ISerializable {
     if (value instanceof UFRef) {
       throw new ValueError('Cannot create UFRef to another UFRef');
     }
-    this.id = `uf-${persistStore.nextId}`;
+    this.id_ = `uf-${persistStore.nextId}`;
     this.value_ = value;
     makeObservable(this);
+  }
+
+  @computed
+  public get id() {
+    return this.id_;
   }
 
   @computed
@@ -376,23 +389,29 @@ export class UFRef<T extends IWithId> implements IWithId, ISerializable {
 
   //#region ISerializable
   serialize(): UFRefData {
-    return {
+    return RemoveUndefined({
+      id: this.id,
       ref: this.ref_?.id,
       value: this.value_.id,
       size: this.size_,
-    };
+    });
   }
 
   deserialize(data: UFRefData, future: FutureMap) {
-    this.size_ = data.size;
+    if (data.size) this.size_ = data.size;
     if (data.ref) {
       future.runWhenReady(data.ref, (value: UFRef<T>) => {
         this.ref_ = value;
+        this.ref_.children_.add(this);
       });
     }
     future.runWhenReady(data.value, (value: T) => {
       this.value_ = value;
     });
+    if (data.id) {
+      this.id_ = data.id;
+      future.set(data.id, this);
+    }
   }
   //#endregion ISerializable
 }

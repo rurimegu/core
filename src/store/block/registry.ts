@@ -49,6 +49,7 @@ export function DeserializeBlock(block: BlockBase, data: BlockData) {
   };
   block.deserialize(dataWithHelpers);
   if (dataWithHelpers.context.unresolvedCount > 0) {
+    console.warn('Failed to resolve:', dataWithHelpers.context);
     throw new DataError(
       `Failed to resolve ${dataWithHelpers.context.unresolvedCount} references`,
     );

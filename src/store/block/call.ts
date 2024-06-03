@@ -168,8 +168,8 @@ export class CallBlock extends CallBlockBase {
   public override serialize(): CallBlockData {
     return RemoveUndefined({
       ...super.serialize(),
-      start: this.start.toString(),
-      end: this.end.toString(),
+      start: this.start.serialize(),
+      end: this.end.serialize(),
       ref: this.ref_.serialize(),
       text: this.selfText,
     });
