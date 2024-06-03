@@ -15,6 +15,8 @@ import {
   IWithBottomText,
   UserError,
   IWithSpacing,
+  Typeof,
+  UniqueBy,
 } from '../../utils';
 import { MRef, UFRef, UFRefData } from '../../utils/ds';
 import { LyricsBlock } from './lyrics';
@@ -288,4 +290,13 @@ export class SingAlongBlock extends CallBlockBase implements IWithSpacing {
     }
   }
   //#endregion ISerializable
+}
+
+export function checkFullCallGroup(blocks: BlockBase[]) {
+  const callBlocks = Typeof(blocks, CallBlock);
+  const group = UniqueBy(callBlocks, (block) => block.group);
+  if (group.some((g) => [...g.all].some((b) => !callBlocks.includes(b)))) {
+    return false;
+  }
+  return true;
 }

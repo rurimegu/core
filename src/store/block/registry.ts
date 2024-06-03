@@ -27,7 +27,6 @@ export type ResizableBlock =
   | CallBlock
   | CommentBlock
   | SingAlongBlock;
-export type BlocksWithSpacing = LyricsBlock | CallBlock | SingAlongBlock;
 
 export function CreateBlock(data: BlockData & BlockDataHelpers): BlockBase {
   if (data.type === BlockType.Unknown) {
