@@ -137,6 +137,14 @@ export class CallLineRenderData extends LineRenderData<CallBlockRenderData> {
   ) {
     super(children);
   }
+
+  public get firstEnd() {
+    return super.end;
+  }
+
+  public get end() {
+    return this.firstEnd + this.repeatOffsets[this.repeatOffsets.length - 1];
+  }
 }
 
 export class CommentLineRenderData extends LineRenderData<CommentRenderData> {}

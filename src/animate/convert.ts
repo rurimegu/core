@@ -142,10 +142,9 @@ class CallLineConverter extends LineConverter<
    * @param startIdx The index of the first call block.
    * @returns A tuple of the call blocks and repeat offsets.
    */
-  protected calcRepeatOffsets(
-    startIdx: number,
-  ): [CallBlockRenderData[], number[]] {
+  protected calcRepeatOffsets(): [CallBlockRenderData[], number[]] {
     const track = this.track as CallsTrack;
+    const startIdx = this.head;
     const head = track.children[startIdx] as CallBlock;
     const group = head.group;
     const possibleRepeats = [...group.all]
@@ -218,6 +217,7 @@ class CallLineConverter extends LineConverter<
           blocks[0].start,
       );
     }
+    this.head += repeatOffsets.length * blocks.length;
     return [blocks, repeatOffsets];
   }
 
@@ -231,8 +231,7 @@ class CallLineConverter extends LineConverter<
     const shouldHint =
       firstBlock.start - (this.lastLine?.end ?? 0) >= minInterval;
     const hint = shouldHint ? minInterval : 0;
-    const [blocks, repeatOffsets] = this.calcRepeatOffsets(this.head);
-    this.head += blocks.length * repeatOffsets.length;
+    const [blocks, repeatOffsets] = this.calcRepeatOffsets();
     return new CallLineRenderData(hint, blocks, repeatOffsets);
   }
 
