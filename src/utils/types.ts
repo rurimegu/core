@@ -37,7 +37,7 @@ export interface IWithSpacing {
 export function Typeof<U>(arr: any[], type: Constructor<U>): U[] {
   return arr.filter((x) => x instanceof type) as U[];
 }
-export function RemoveUndefined<T extends Record<symbol, any>>(
+export function RemoveUndefined<T extends object>(
   obj: T,
   removeFalse = false,
 ): T {

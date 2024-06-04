@@ -302,11 +302,16 @@ export class RenderDataConverter {
     // Handle text.
     let text = block.bottomText;
     let leftPunctuations = /^\p{P}*/u.exec(text)?.[0] ?? '';
+    let rightPunctuations = /\p{P}*$/u.exec(text)?.[0] ?? '';
     if (leftPunctuations === text) {
       // Punctuation only.
       leftPunctuations = '';
+      rightPunctuations = '';
     }
-    text = text.substring(leftPunctuations.length);
+    text = text.substring(
+      leftPunctuations.length,
+      text.length - rightPunctuations.length,
+    );
     // Just one frame for punctuation.
     const startFrame = this.timing.barToFrame(block.start);
     const endFrame = this.timing.barToFrame(block.end);
@@ -330,6 +335,16 @@ export class RenderDataConverter {
         singAlong,
       ),
     );
+    if (rightPunctuations) {
+      ret.push(
+        new LyricsBlockRenderData(
+          endFrame,
+          endFrame,
+          rightPunctuations,
+          colors,
+        ),
+      );
+    }
     return ret;
   }
 

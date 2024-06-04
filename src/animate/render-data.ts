@@ -114,6 +114,16 @@ export class LyricsLineRenderData extends LineRenderData<LyricsBlockRenderData> 
       new LyricsBlockRenderData(start, end, ''),
     ]);
   }
+
+  public finalize() {
+    if (this.isEmpty) return; // No need to finalize placeholder block
+    while (this.children[this.children.length - 1].isEmpty) {
+      this.children.pop();
+    }
+    while (this.children[0].isEmpty) {
+      this.children.shift();
+    }
+  }
 }
 
 export class CallLineRenderData extends LineRenderData<CallBlockRenderData> {
@@ -155,10 +165,15 @@ export class LyricsParagraphRenderData extends RenderDataBase {
       this.lyrics.isEmpty && this.calls.every((x) => x.children.length === 0)
     );
   }
+
+  public finalize() {
+    this.lyrics.finalize();
+  }
 }
 
 export class LyricsTrackRenderData extends Array<LyricsParagraphRenderData> {
   public finalize() {
+    this.forEach((x) => x.finalize());
     _.remove(this, (x) => x.isEmpty);
     this.sort((a, b) => a.start - b.start);
   }
