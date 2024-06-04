@@ -53,4 +53,6 @@ export function EnumValues(obj: any): string[] {
 }
 export type SimpleFunc = () => void;
 
+export type Handler<T> = (data: T) => void;
+
 export type Predicate<T> = (value: T) => boolean;

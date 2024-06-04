@@ -1,11 +1,13 @@
-export class MeguEvent<T = void> {
-  private handlers: ((data: T) => void)[] = [];
+import { Handler } from './types';
 
-  public add(handler: (data: T) => void) {
+export class MeguEvent<T = void> {
+  private handlers: Handler<T>[] = [];
+
+  public add(handler: Handler<T>) {
     this.handlers.push(handler);
   }
 
-  public remove(handler: (data: T) => void) {
+  public remove(handler: Handler<T>) {
     this.handlers = this.handlers.filter((h) => h !== handler);
   }
 
