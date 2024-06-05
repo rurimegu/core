@@ -439,10 +439,12 @@ export class RenderDataConverter {
       : (x) => x.start < main.end;
     // Find the next line in other tracks.
     for (const conv of convs) {
+      const lines = new Array<CallLineRenderData>();
       while (!conv.isFinished && predicate(conv.currentLine!)) {
-        paragraph.calls.push(conv.currentLine!);
+        lines.push(conv.currentLine!);
         conv.moveLineNext();
       }
+      paragraph.calls.push(lines);
     }
     return paragraph;
   }

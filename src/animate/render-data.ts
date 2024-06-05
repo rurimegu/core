@@ -93,9 +93,23 @@ export class LineRenderData<T extends RenderDataBase> extends RenderDataBase {
   public override get end() {
     return this.children[this.children.length - 1].end;
   }
+
+  public get first() {
+    return this.children[0];
+  }
+
+  public get last() {
+    return this.children[this.children.length - 1];
+  }
 }
 
 export class LyricsLineRenderData extends LineRenderData<LyricsBlockRenderData> {
+  public static Placeholder(start: number, end: number) {
+    return new LyricsLineRenderData(undefined, [
+      new LyricsBlockRenderData(start, end, ''),
+    ]);
+  }
+
   public constructor(
     /** Hint frames before start time. If undefined, will not render hint animation. */
     public readonly hint?: number,
@@ -109,10 +123,8 @@ export class LyricsLineRenderData extends LineRenderData<LyricsBlockRenderData> 
     return this.children.every((x) => x.isEmpty);
   }
 
-  public static Placeholder(start: number, end: number) {
-    return new LyricsLineRenderData(undefined, [
-      new LyricsBlockRenderData(start, end, ''),
-    ]);
+  public get validChildren() {
+    return this.children.filter((x) => !x.isEmpty);
   }
 
   public finalize() {
@@ -152,30 +164,37 @@ export class CommentLineRenderData extends LineRenderData<CommentRenderData> {}
 export class LyricsParagraphRenderData extends RenderDataBase {
   public constructor(
     public readonly lyrics: LyricsLineRenderData,
-    public readonly calls: CallLineRenderData[] = [],
+    public readonly calls: CallLineRenderData[][] = [],
   ) {
     super();
   }
 
   public override get start() {
-    return Math.min(this.lyrics.start, this.calls[0]?.start ?? MAX_FRAMES);
+    return Math.min(
+      this.lyrics.start,
+      this.calls
+        .flatMap((c) => c)
+        .reduce((a, b) => Math.min(a, b.start), MAX_FRAMES),
+    );
   }
 
   public override get end() {
     return Math.max(
       this.lyrics.end,
-      this.calls[this.calls.length - 1]?.end ?? 0,
+      this.calls.flatMap((c) => c).reduce((a, b) => Math.max(a, b.end), 0),
     );
   }
 
   public get isEmpty() {
     return (
-      this.lyrics.isEmpty && this.calls.every((x) => x.children.length === 0)
+      this.lyrics.isEmpty &&
+      this.calls.flatMap((c) => c).every((x) => x.children.length === 0)
     );
   }
 
   public finalize() {
     this.lyrics.finalize();
+    _.remove(this.calls, (x) => x.length === 0);
   }
 }
 
