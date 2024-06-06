@@ -1,6 +1,7 @@
 import {
   AnnotationBlock,
   BlockBase,
+  BpmStore,
   CallBlock,
   CallBlockBase,
   CallsTrack,
@@ -11,6 +12,8 @@ import {
   LyricsTrack,
   ParentBlockBase,
   SingAlongBlock,
+  TagsInfo,
+  TagsStore,
 } from '../store';
 import {
   ApproxEqual,
@@ -35,6 +38,9 @@ import {
   LyricsRenderData,
   LyricsTrackRenderData,
   RenderDataBase,
+  BpmRenderData,
+  TagsRenderData,
+  TagRenderData,
 } from './render-data';
 import { AnimateTiming } from './timing';
 
@@ -265,6 +271,7 @@ export class RenderDataConverter {
     this.timing = new AnimateTiming(duration, config, lyrics.bpm);
   }
 
+  //#region Track converters
   public convertAnnotation(block: AnnotationBlock): AnnotationRenderData {
     return new AnnotationRenderData(
       this.timing.barToFrame(block.start),
@@ -507,6 +514,30 @@ export class RenderDataConverter {
       prevCallsEnd = Math.max(call.end, prevCallsEnd);
     }
   }
+  //#endregion Track converters
+
+  //#region Metadata converters
+  protected convertBpm(bpm: BpmStore) {
+    return new BpmRenderData(bpm);
+  }
+
+  protected convertTags(tags: TagsStore) {
+    const ret = new TagsRenderData();
+    const info = new TagsInfo();
+    info.gatherInfo(this.lyrics.bpm, this.lyrics.tracks);
+    const sortedTags = [...tags.tagList]
+      .filter((t) => (info.timing[t.id] ?? 0) > 0)
+      .sort((a, b) => {
+        return info.timing[b.id] - info.timing[a.id];
+      });
+    ret.push(
+      ...sortedTags.map(
+        (tag) => new TagRenderData(tag.name, tag.color, info.timing[tag.id]),
+      ),
+    );
+    return ret;
+  }
+  //#endregion Metadata converters
 
   public convert(): LyricsRenderData {
     const comments = this.convertCommentTracks(
@@ -519,6 +550,8 @@ export class RenderDataConverter {
       this.lyrics.meta,
       lyrics,
       comments,
+      this.convertBpm(this.lyrics.bpm),
+      this.convertTags(this.lyrics.tags),
     );
     return ret;
   }

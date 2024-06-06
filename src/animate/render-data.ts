@@ -1,5 +1,5 @@
 import _ from 'lodash';
-import { LyricsMetadata } from '../store';
+import { BpmStore, LyricsMetadata } from '../store';
 import { Bisect, Color, MAX_FRAMES } from '../utils';
 
 export abstract class RenderDataBase {
@@ -9,6 +9,7 @@ export abstract class RenderDataBase {
   public abstract get end(): number;
 }
 
+//#region Tracks
 export abstract class LineBlockRenderData extends RenderDataBase {
   constructor(
     /** Text to display. */
@@ -232,13 +233,32 @@ export class CommentTrackRenderData extends Array<CommentLineRenderData> {
     }
   }
 }
+//#endregion Tracks
+
+//#region Metadata
+export class BpmRenderData {
+  public constructor(public readonly store: BpmStore) {}
+}
+
+export class TagRenderData {
+  public constructor(
+    public readonly name: string,
+    public readonly color: Color,
+    public readonly totalDuration: number,
+  ) {}
+}
+
+export class TagsRenderData extends Array<TagRenderData> {}
+//#endregion Metadata
 
 export class LyricsRenderData extends RenderDataBase {
   public constructor(
     public readonly end: number,
     public readonly meta: LyricsMetadata,
-    public readonly lyrics = new LyricsTrackRenderData(),
-    public readonly comments = new CommentTrackRenderData(),
+    public readonly lyrics: LyricsTrackRenderData,
+    public readonly comments: CommentTrackRenderData,
+    public readonly bpms: BpmRenderData,
+    public readonly tags: TagsRenderData,
   ) {
     super();
   }
