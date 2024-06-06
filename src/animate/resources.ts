@@ -29,6 +29,14 @@ export class ResourceMapping implements ISerializable {
     this.resources[RES_KEYS.COVER] = value;
   }
 
+  public get callPath() {
+    return this.resources[RES_KEYS.SE_CALL];
+  }
+
+  public set callPath(value: string) {
+    this.resources[RES_KEYS.SE_CALL] = value;
+  }
+
   //#region ISerializable
   public serialize() {
     return {

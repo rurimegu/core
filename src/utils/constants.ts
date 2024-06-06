@@ -15,5 +15,6 @@ export const RES_KEYS = {
   LYRICS: 'lyrics',
   AUDIO: 'audio',
   COVER: 'cover',
+  SE_CALL: 'call',
 };
 export const MAX_FRAMES = 1e9;
