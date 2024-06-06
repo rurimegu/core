@@ -36,17 +36,21 @@ export class AnimateTiming {
     return this.timeToFrame(this.duration);
   }
 
-  public minHintIntervalAt(timing: Timing | number): IntervalData {
+  public hintIntervalAt(timing: Timing | number): IntervalData {
     const bpm = this.bpm.at(timing).bpm;
     const beatFrames = this.timeToFrame(60 / bpm);
     const hintLyricsLine = getInterval(
       beatFrames,
       this.config.minIntervals.hintLyricsLine,
     );
-    const hintCallBlock = getInterval(
+    const hintCallLine = getInterval(
       beatFrames,
-      this.config.minIntervals.hintCallBlock,
+      this.config.minIntervals.hintCallLine,
     );
-    return { hintLyricsLine, hintCallBlock };
+    return { hintLyricsLine, hintCallLine };
+  }
+
+  public hintIntervalAtFrame(frame: number): IntervalData {
+    return this.hintIntervalAt(this.frameToBar(frame));
   }
 }

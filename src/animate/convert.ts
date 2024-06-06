@@ -44,13 +44,13 @@ abstract class LineConverter<
   T extends LineRenderData<U>,
 > {
   protected head = 0;
-  protected lastLine?: T;
+  protected currentLine_: T | undefined;
 
   constructor(
     public readonly parent: RenderDataConverter,
     public track: ParentBlockBase<B>,
   ) {
-    this.moveLineNext();
+    this.nextLine();
   }
 
   protected get headBlock() {
@@ -68,14 +68,13 @@ abstract class LineConverter<
   }
 
   public get isFinished() {
-    return this.isHeadFinished && !this.lastLine;
+    return this.isHeadFinished && !this.currentLine_;
   }
 
-  public get currentLine() {
-    return this.lastLine;
+  public abstract nextLine(): T | undefined;
+  public get currentLine(): T | undefined {
+    return this.currentLine_;
   }
-
-  public abstract moveLineNext(): void;
 }
 
 class LyricsLineConverter extends LineConverter<
@@ -83,21 +82,13 @@ class LyricsLineConverter extends LineConverter<
   LyricsBlockRenderData,
   LyricsLineRenderData
 > {
-  public override moveLineNext() {
+  public override nextLine() {
     if (this.isHeadFinished) {
-      this.lastLine = undefined;
+      this.currentLine_ = undefined;
       return;
     }
     let head = this.headBlock!;
     const blocks = this.parent.convertLyricsBlock(head);
-    const firstBlock = blocks[0];
-    // Calculate if hint is needed.
-    const minInterval = this.parent.timing.minHintIntervalAt(
-      head.start,
-    ).hintLyricsLine;
-    const shouldHint =
-      firstBlock.start - (this.lastLine?.end ?? 0) >= minInterval;
-    const hint = shouldHint ? minInterval : 0;
     // Collect all blocks in the same line until a newline block.
     while (this.moveHeadNext()) {
       if (head.space) {
@@ -117,7 +108,8 @@ class LyricsLineConverter extends LineConverter<
       head = this.headBlock!;
       blocks.push(...this.parent.convertLyricsBlock(head));
     }
-    this.lastLine = new LyricsLineRenderData(hint, blocks);
+    this.currentLine_ = new LyricsLineRenderData(blocks);
+    return this.currentLine_;
   }
 }
 
@@ -223,21 +215,13 @@ class CallLineConverter extends LineConverter<
 
   protected getCallBlocks() {
     // Checks whether hint is needed.
-    const head = this.headBlock as CallBlock;
-    const firstBlock = this.parent.convertCallBlock(head);
-    const minInterval = this.parent.timing.minHintIntervalAt(
-      head.start,
-    ).hintCallBlock;
-    const shouldHint =
-      firstBlock.start - (this.lastLine?.end ?? 0) >= minInterval;
-    const hint = shouldHint ? minInterval : 0;
     const [blocks, repeatOffsets] = this.calcRepeatOffsets();
-    return new CallLineRenderData(hint, blocks, repeatOffsets);
+    return new CallLineRenderData(blocks, repeatOffsets);
   }
 
-  public override moveLineNext() {
+  public override nextLine() {
     if (this.isHeadFinished) {
-      this.lastLine = undefined;
+      this.currentLine_ = undefined;
       return;
     }
     const head = this.headBlock as CallBlockBase;
@@ -245,10 +229,11 @@ class CallLineConverter extends LineConverter<
       const blocks = this.calcSimpleCallBlocks();
       const repeatOffsets = [0];
       // No need to hint for sing along blocks.
-      this.lastLine = new CallLineRenderData(0, blocks, repeatOffsets);
+      this.currentLine_ = new CallLineRenderData(blocks, repeatOffsets);
     } else {
-      this.lastLine = this.getCallBlocks();
+      this.currentLine_ = this.getCallBlocks();
     }
+    return this.currentLine_;
   }
 }
 
@@ -347,21 +332,12 @@ export class RenderDataConverter {
     return ret;
   }
 
-  public convertLyricsLine(
-    blocks: LyricsBlock[],
-    emptyFramesBefore: number,
-  ): LyricsLineRenderData {
-    const first = blocks[0];
+  public convertLyricsLine(blocks: LyricsBlock[]): LyricsLineRenderData {
     const last = blocks[blocks.length - 1];
-    const minInterval = this.timing.minHintIntervalAt(
-      first.start,
-    ).hintLyricsLine;
-    const hint = minInterval >= emptyFramesBefore ? minInterval : undefined;
     if (!last.newline) {
       console.warn('Last block of a line should have newline bit set.');
     }
     const ret = new LyricsLineRenderData(
-      hint,
       blocks.flatMap((x) => this.convertLyricsBlock(x)),
     );
     return ret;
@@ -378,16 +354,10 @@ export class RenderDataConverter {
 
   public convertCallLine(
     blocks: CallBlock[],
-    emptyFramesBefore: number,
     repeatOffsets: number[],
   ): CallLineRenderData {
-    const first = blocks[0];
-    const minInterval = this.timing.minHintIntervalAt(
-      first.start,
-    ).hintCallBlock;
-    const hint = minInterval >= emptyFramesBefore ? minInterval : undefined;
     const callBlocks = blocks.map((x) => this.convertCallBlock(x));
-    return new CallLineRenderData(hint, callBlocks, repeatOffsets);
+    return new CallLineRenderData(callBlocks, repeatOffsets);
   }
 
   public convertComment(block: CommentBlock): CommentRenderData {
@@ -442,7 +412,7 @@ export class RenderDataConverter {
       const lines = new Array<CallLineRenderData>();
       while (!conv.isFinished && predicate(conv.currentLine!)) {
         lines.push(conv.currentLine!);
-        conv.moveLineNext();
+        conv.nextLine();
       }
       paragraph.calls.push(lines);
     }
@@ -459,7 +429,7 @@ export class RenderDataConverter {
     const firstLine = LyricsLineRenderData.Placeholder(0, current.start);
     ret.push(this.processNextParagraph(firstLine, calls, true));
     while (!lyrics.isFinished) {
-      lyrics.moveLineNext();
+      lyrics.nextLine();
       const nextStart = lyrics.currentLine?.start ?? MAX_FRAMES;
       ret.push(this.processNextParagraph(current!, calls, false));
       const placeholder = LyricsLineRenderData.Placeholder(
@@ -509,11 +479,41 @@ export class RenderDataConverter {
     return ret;
   }
 
+  public calcHint(data: LyricsTrackRenderData) {
+    // Calculate hint for lyrics.
+    let prevLyricsEnd = 0;
+    const lyrics = data.flatMap((x) => x.lyrics).filter((x) => !x.isEmpty);
+    lyrics.sort((a, b) => a.start - b.start);
+    for (const lyric of lyrics) {
+      const emptyFrames = lyric.start - prevLyricsEnd;
+      // Add 1 frame for floating point error.
+      const minHint = this.timing.hintIntervalAt(
+        lyric.start + 1,
+      ).hintLyricsLine;
+      if (emptyFrames >= this.config.minIntervals.hintLyricsLine)
+        lyric.hint = minHint;
+      prevLyricsEnd = Math.max(lyric.end, prevLyricsEnd);
+    }
+    // Calculate hint for calls.
+    let prevCallsEnd = 0;
+    const calls = data.flatMap((x) => x.calls.flatMap((y) => y));
+    calls.sort((a, b) => a.start - b.start);
+    for (const call of calls) {
+      const emptyFrames = call.start - prevCallsEnd;
+      // Add 1 frame for floating point error.
+      const minHint = this.timing.hintIntervalAt(call.start + 1).hintCallLine;
+      if (emptyFrames >= this.config.minIntervals.hintCallLine)
+        call.hint = minHint;
+      prevCallsEnd = Math.max(call.end, prevCallsEnd);
+    }
+  }
+
   public convert(): LyricsRenderData {
     const comments = this.convertCommentTracks(
       Typeof(this.lyrics.tracks.children, CommentTrack),
     );
     const lyrics = this.convertLyricsTracks();
+    this.calcHint(lyrics);
     const ret = new LyricsRenderData(
       this.timing.maxFrame,
       this.lyrics.meta,

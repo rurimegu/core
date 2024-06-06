@@ -104,15 +104,16 @@ export class LineRenderData<T extends RenderDataBase> extends RenderDataBase {
 }
 
 export class LyricsLineRenderData extends LineRenderData<LyricsBlockRenderData> {
+  /** Hint frames before start time. If undefined, will not render hint animation. */
+  public hint?: number;
+
   public static Placeholder(start: number, end: number) {
-    return new LyricsLineRenderData(undefined, [
+    return new LyricsLineRenderData([
       new LyricsBlockRenderData(start, end, ''),
     ]);
   }
 
   public constructor(
-    /** Hint frames before start time. If undefined, will not render hint animation. */
-    public readonly hint?: number,
     /** Children. */
     children: LyricsBlockRenderData[] = [],
   ) {
@@ -139,9 +140,10 @@ export class LyricsLineRenderData extends LineRenderData<LyricsBlockRenderData> 
 }
 
 export class CallLineRenderData extends LineRenderData<CallBlockRenderData> {
+  /** Hint frames before start time. If undefined, will not render hint animation. */
+  public hint?: number;
+
   public constructor(
-    /** Hint frames before start time. If undefined, will not render hint animation. */
-    public readonly hint?: number,
     /** Children. */
     children: CallBlockRenderData[] = [],
     /** Repeated at different offsets. */
