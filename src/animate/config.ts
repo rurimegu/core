@@ -1,9 +1,19 @@
-import { ISerializable } from '../utils';
+import { template } from 'lodash';
+import { ISerializable, OptionallAssignRecursive } from '../utils';
 import { ResourceMapping, ResourceMappingData } from './resources';
 
 export interface IntervalData {
   hintLyricsLine: number;
   hintCallLine: number;
+}
+
+export interface RenderTemplateTypeData {
+  type: string;
+  options?: Record<string, any>;
+}
+
+export interface RenderTemplateData {
+  lyricsBlock?: RenderTemplateTypeData;
 }
 
 export interface AnimateConfigData {
@@ -13,6 +23,7 @@ export interface AnimateConfigData {
   width?: number;
   height?: number;
   minIntervals?: IntervalData;
+  template?: RenderTemplateData;
 }
 
 export class AnimateConfig implements ISerializable {
@@ -25,6 +36,17 @@ export class AnimateConfig implements ISerializable {
     hintLyricsLine: 120,
     hintCallLine: 60,
   };
+  public template: RenderTemplateData = {};
+
+  //#region Timing
+  public timeToFrame(s: number) {
+    return Math.round(s * this.fps);
+  }
+
+  public frameToTime(frame: number) {
+    return frame / this.fps;
+  }
+  //#endregion Timing
 
   //#region ISerializable
   public serialize() {
@@ -35,6 +57,7 @@ export class AnimateConfig implements ISerializable {
       width: this.width,
       height: this.height,
       minHintIntervals: this.minIntervals,
+      template,
     };
   }
 
@@ -45,6 +68,7 @@ export class AnimateConfig implements ISerializable {
     this.width = data.width ?? this.width;
     this.height = data.height ?? this.height;
     this.minIntervals = data.minIntervals ?? this.minIntervals;
+    if (data.template) OptionallAssignRecursive(this.template, data.template);
   }
   //#endregion ISerializable
 }
