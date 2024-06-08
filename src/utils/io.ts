@@ -32,9 +32,12 @@ export function DeserializeGzip(array: Uint8Array): Promise<any> {
   return new Response(stream).json();
 }
 
+export function PathSanitize(path: string): string {
+  return path.replaceAll('\\', '/').replace(/\/+/g, '/');
+}
+
 export function PathJoin(...parts: string[]): string {
-  parts = parts.map((part) => part.replaceAll('\\', '/').replace(/\/+$/g, ''));
-  return parts.join('/');
+  return parts.map(PathSanitize).join('/');
 }
 
 export function PathBaseDir(path: string): string {
