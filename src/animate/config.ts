@@ -20,7 +20,7 @@ export interface RenderTemplateData {
 export interface AnimateConfigData {
   resources: ResourceMappingData;
   fps?: number;
-  openFrames?: number;
+  openTime?: number;
   width?: number;
   height?: number;
   minIntervals?: IntervalData;
@@ -30,12 +30,12 @@ export interface AnimateConfigData {
 export class AnimateConfig implements ISerializable {
   public readonly resources = new ResourceMapping();
   public fps = 60;
-  public openFrames = 180;
+  public openTime = 3;
   public width = 1280;
   public height = 720;
   public minIntervals: IntervalData = {
-    hintLyricsLine: 120,
-    hintCallLine: 60,
+    hintLyricsLine: 3,
+    hintCallLine: 1.5,
   };
   public template: RenderTemplateData = {};
 
@@ -47,6 +47,10 @@ export class AnimateConfig implements ISerializable {
   public frameToTime(frame: number) {
     return frame / this.fps;
   }
+
+  public get openFrames() {
+    return this.timeToFrame(this.openTime);
+  }
   //#endregion Timing
 
   //#region ISerializable
@@ -54,7 +58,7 @@ export class AnimateConfig implements ISerializable {
     return {
       resources: this.resources.serialize(),
       fps: this.fps,
-      openFrames: this.openFrames,
+      openTime: this.openTime,
       width: this.width,
       height: this.height,
       minHintIntervals: this.minIntervals,
@@ -65,7 +69,7 @@ export class AnimateConfig implements ISerializable {
   public deserialize(data: AnimateConfigData) {
     this.resources.deserialize(data.resources);
     this.fps = data.fps ?? this.fps;
-    this.openFrames = data.openFrames ?? this.openFrames;
+    this.openTime = data.openTime ?? this.openTime;
     this.width = data.width ?? this.width;
     this.height = data.height ?? this.height;
     this.minIntervals = data.minIntervals ?? this.minIntervals;

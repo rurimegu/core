@@ -2,7 +2,8 @@ import { BpmStore, Timing } from '../store';
 import { AnimateConfig, IntervalData } from './config';
 
 function getInterval(beatFrame: number, target: number) {
-  while (beatFrame < target) {
+  // Ensures the return value is within [2/3, 4/3] of the target
+  while (beatFrame < (target * 2) / 3) {
     beatFrame *= 2;
   }
   return beatFrame;
@@ -38,13 +39,13 @@ export class AnimateTiming {
 
   public hintIntervalAt(timing: Timing | number): IntervalData {
     const bpm = this.bpm.at(timing).bpm;
-    const beatFrames = this.timeToFrame(60 / bpm);
+    const beatS = 60 / bpm;
     const hintLyricsLine = getInterval(
-      beatFrames,
+      beatS,
       this.config.minIntervals.hintLyricsLine,
     );
     const hintCallLine = getInterval(
-      beatFrames,
+      beatS,
       this.config.minIntervals.hintCallLine,
     );
     return { hintLyricsLine, hintCallLine };

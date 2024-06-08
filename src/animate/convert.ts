@@ -492,12 +492,12 @@ export class RenderDataConverter {
     const lyrics = data.flatMap((x) => x.lyrics).filter((x) => !x.isEmpty);
     lyrics.sort((a, b) => a.start - b.start);
     for (const lyric of lyrics) {
-      const emptyFrames = lyric.start - prevLyricsEnd;
+      const voidTime = this.config.frameToTime(lyric.start - prevLyricsEnd);
       // Add 1 frame for floating point error.
-      const minHint = this.timing.hintIntervalAt(
-        lyric.start + 1,
-      ).hintLyricsLine;
-      if (emptyFrames >= this.config.minIntervals.hintLyricsLine)
+      const minHint = this.timing.timeToFrame(
+        this.timing.hintIntervalAt(lyric.start + 1).hintLyricsLine,
+      );
+      if (voidTime >= this.config.minIntervals.hintLyricsLine)
         lyric.hint = minHint;
       prevLyricsEnd = Math.max(lyric.end, prevLyricsEnd);
     }
@@ -506,10 +506,12 @@ export class RenderDataConverter {
     const calls = data.flatMap((x) => x.calls.flatMap((y) => y));
     calls.sort((a, b) => a.start - b.start);
     for (const call of calls) {
-      const emptyFrames = call.start - prevCallsEnd;
+      const voidTime = this.config.frameToTime(call.start - prevCallsEnd);
       // Add 1 frame for floating point error.
-      const minHint = this.timing.hintIntervalAt(call.start + 1).hintCallLine;
-      if (emptyFrames >= this.config.minIntervals.hintCallLine)
+      const minHint = this.timing.timeToFrame(
+        this.timing.hintIntervalAt(call.start + 1).hintCallLine,
+      );
+      if (voidTime >= this.config.minIntervals.hintCallLine)
         call.hint = minHint;
       prevCallsEnd = Math.max(call.end, prevCallsEnd);
     }
