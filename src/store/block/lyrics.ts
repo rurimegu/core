@@ -203,6 +203,7 @@ export class LyricsBlock
     this.newline = Boolean(data.newline);
     this.space = Boolean(data.space);
     if (data.tags) this.tags.deserialize(data.tags);
+    else this.tags.clear();
   }
   //#endregion ISerializable
 }

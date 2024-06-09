@@ -6,7 +6,7 @@ import {
   RemoveUndefined,
   SimpleFunc,
 } from './types';
-import { InvalidStateError, ValueError } from './error';
+import { DataError, InvalidStateError, ValueError } from './error';
 import { ISerializable } from './io';
 import { persistStore } from '../store';
 
@@ -398,20 +398,23 @@ export class UFRef<T extends IWithId> implements IWithId, ISerializable {
   }
 
   deserialize(data: UFRefData, future: FutureMap) {
-    if (data.size) this.size_ = data.size;
+    this.size_ = data.size ?? 1;
     if (data.ref) {
       future.runWhenReady(data.ref, (value: UFRef<T>) => {
         this.ref_ = value;
         this.ref_.children_.add(this);
       });
+    } else {
+      this.ref_ = undefined;
     }
     future.runWhenReady(data.value, (value: T) => {
       this.value_ = value;
     });
-    if (data.id) {
-      this.id_ = data.id;
-      future.set(data.id, this);
+    if (!data.id) {
+      throw new DataError('UFRefData.id is required');
     }
+    this.id_ = data.id;
+    future.set(data.id, this);
   }
   //#endregion ISerializable
 }

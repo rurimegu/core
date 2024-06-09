@@ -45,7 +45,7 @@ export class ResourceMapping implements ISerializable {
   }
 
   public deserialize(data: ResourceMappingData) {
-    if (data) this.resources = data;
+    this.resources = data ?? {};
   }
   //#endregion ISerializable
 }

@@ -52,6 +52,12 @@ export class LyricsTag implements ISerializable, IClonable<LyricsTag> {
       color: this.color.serialize(),
     };
   }
+
+  @action
+  public deserialize(data: LyricsTagData): void {
+    this.name = data.name;
+    this.color = Color.Deserialize(data.color);
+  }
   //#endregion ISerializable
 
   //#region IClonable
@@ -123,11 +129,16 @@ export class TagsStore implements ISerializable {
 
   @action
   public replaceTags(tags: LyricsTag[]): void {
-    this.tags_.clear();
-    this.tagsOrder_.clear();
+    this.clear();
     for (const tag of tags) {
       this.addTag(tag);
     }
+  }
+
+  @action
+  public clear(): void {
+    this.tags_.clear();
+    this.tagsOrder_.clear();
   }
 
   public getTag(id: string): LyricsTag | undefined {
@@ -161,8 +172,7 @@ export class TagsStore implements ISerializable {
     this.tagsOrder_.clear();
     for (const tagData of data.tags) {
       const tag = new LyricsTag(tagData.id);
-      tag.name = tagData.name;
-      tag.color = Color.Deserialize(tagData.color);
+      tag.deserialize(tagData);
       this.addTag(tag);
     }
   }
@@ -210,6 +220,11 @@ export class TagsRef implements ISerializable, IDeserializable {
     const tag = this.store.getTag(id);
     if (!tag) return;
     this._tags.push(id);
+  }
+
+  @action
+  public clear(): void {
+    this._tags.clear();
   }
 
   //#region ISerializable

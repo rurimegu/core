@@ -147,12 +147,14 @@ export abstract class BlockBase
   @action
   public deserialize(data: BlockData & BlockDataHelpers) {
     this.id_ = data.id;
-    data.context.set(this.id, this);
     if (data.parent) {
       data.context.runWhenReady(data.parent, (parent) => {
         this.setParent(parent as ParentBlockBase<BlockBase>);
       });
+    } else {
+      this.parent_ = undefined;
     }
+    data.context.set(this.id, this);
   }
   //#endregion ISerializable
 

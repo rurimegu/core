@@ -142,11 +142,10 @@ export class AnnotationBlock
 
   @override
   public override deserialize(data: AnnotationBlockData & BlockDataHelpers) {
-    const ret = super.deserialize(data);
+    super.deserialize(data);
     this.text = data.text;
     this.start = Timing.Deserialize(data.start);
     this.end = Timing.Deserialize(data.end);
-    return ret;
   }
   //#endregion
 

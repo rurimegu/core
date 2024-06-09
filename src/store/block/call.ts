@@ -285,6 +285,8 @@ export class SingAlongBlock extends CallBlockBase implements IWithSpacing {
       data.context.runWhenReady(data.ref, (block: LyricsBlock) => {
         this.lyricsBlock = block;
       });
+    } else {
+      this.lyricsBlock = undefined;
     }
   }
   //#endregion ISerializable

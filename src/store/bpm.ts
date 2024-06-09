@@ -107,7 +107,7 @@ export class BpmStore implements ISerializable, IDeserializable {
 
   public constructor() {
     makeObservable(this);
-    this.bpmPoints.push(this.newBpm(new Timing(0, 0, 1), 120, DEFAULT_BPM_DIV));
+    this.clear();
   }
 
   public get offsetS(): number {
@@ -173,6 +173,13 @@ export class BpmStore implements ISerializable, IDeserializable {
   @action
   public newBpm(time: Timing, bpm: number, div: number): Bpm {
     return new Bpm(`bpm-${persistStore.nextId}`, time, bpm, div);
+  }
+
+  @action
+  public clear() {
+    this.bpmPoints.clear();
+    this.bpmPoints.push(this.newBpm(new Timing(0, 0, 1), 120, DEFAULT_BPM_DIV));
+    this.offset = 0;
   }
 
   @action

@@ -22,7 +22,7 @@ export class LyricsStore implements ISerializable, IDeserializable {
   public static readonly VERSION = 1;
 
   public constructor(
-    public readonly tracks = new Tracks(),
+    public readonly tracks = new Tracks('main-tracks'),
     public readonly bpm = new BpmStore(),
     public readonly persist = persistStore,
     public readonly tags = new TagsStore(),
@@ -51,13 +51,27 @@ export class LyricsStore implements ISerializable, IDeserializable {
       );
     }
     runInAction(() => {
-      DeserializeBlock(this.tracks, data.tracks);
+      if (data.tracks) DeserializeBlock(this.tracks, data.tracks);
+      else this.tracks.clear();
+
       if (data.bpm) this.bpm.deserialize(data.bpm);
+      else this.bpm.clear();
+
       if (data.tags) this.tags.deserialize(data.tags);
+      else this.tags.clear();
+
       if (data.meta) this.meta.deserialize(data.meta);
+      else this.meta.clear();
+
       // Must be last since IDs might change during deserialization
-      if (data.persist) this.persist.deserialize(data.persist);
+      this.persist.deserialize(data.persist ?? { nextId: 0 });
     });
+  }
+
+  public clear() {
+    this.deserialize({
+      version: LyricsStore.VERSION,
+    } as LyricsStoreData);
   }
   //#endregion ISerializable
 }

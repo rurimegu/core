@@ -65,6 +65,11 @@ export class LyricsMetadata
     this.coverImagePath = path;
   }
 
+  @action
+  public clear() {
+    this.deserialize({} as LyricsMetadataData);
+  }
+
   //#region IClonable
   @action
   public clone(): LyricsMetadata {
@@ -96,12 +101,12 @@ export class LyricsMetadata
   }
 
   public deserialize(data: LyricsMetadataData) {
-    this.title = data.title;
-    this.artist = data.artist;
-    this.series = data.series;
-    this.lyricist = data.lyricist;
-    this.composer = data.composer;
-    this.coverImagePath = data.coverImagePath;
+    this.title = data.title ?? '';
+    this.artist = data.artist ?? '';
+    this.series = data.series ?? '';
+    this.lyricist = data.lyricist ?? '';
+    this.composer = data.composer ?? '';
+    this.coverImagePath = data.coverImagePath ?? '';
   }
   //#endregion
 }

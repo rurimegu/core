@@ -84,8 +84,8 @@ export abstract class TrackBlockBase<
   public override deserialize(data: TrackBlockData & BlockDataHelpers) {
     super.deserialize(data);
     this.text = data.text;
-    if (data.seVolume !== undefined) this.seVolume = data.seVolume;
     this.muted = Boolean(data.muted);
+    this.seVolume = data.seVolume ?? 1;
   }
   //#endregion ISerializable
 }

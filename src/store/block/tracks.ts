@@ -1,4 +1,4 @@
-import { makeObservable, override } from 'mobx';
+import { action, makeObservable, override } from 'mobx';
 import { BlockType, ParentBlockBase, ParentBlockData } from './base';
 import { TrackBlock } from './track';
 import { Timing } from '../range';
@@ -21,5 +21,10 @@ export class Tracks extends ParentBlockBase<TrackBlock> {
   @override
   public override get end(): Timing {
     return Timing.INVALID;
+  }
+
+  @action
+  public clear() {
+    this.children_.replace([]);
   }
 }

@@ -74,6 +74,7 @@ export class AnimateConfig implements ISerializable {
     this.height = data.height ?? this.height;
     this.minIntervals = data.minIntervals ?? this.minIntervals;
     if (data.template) OptionallAssignRecursive(this.template, data.template);
+    else this.template = {};
   }
   //#endregion ISerializable
 }
