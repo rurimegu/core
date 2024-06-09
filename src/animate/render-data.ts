@@ -1,12 +1,20 @@
 import _ from 'lodash';
 import { BpmStore, LyricsMetadata } from '../store';
-import { Bisect, Color, MAX_TIME } from '../utils';
+import { Bisect, Clamp01, Color, InverseLerp, MAX_TIME } from '../utils';
 
 export abstract class RenderDataBase {
   /** Start time in seconds. */
   public abstract get start(): number;
   /** End time in seconds. */
   public abstract get end(): number;
+
+  public ratio(time: number) {
+    return InverseLerp(this.start, this.end, time);
+  }
+
+  public ratioClamped(time: number) {
+    return Clamp01(this.ratio(time));
+  }
 }
 
 //#region Tracks

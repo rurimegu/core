@@ -91,7 +91,7 @@ export function InverseLerp(a: number, b: number, value: number) {
   if (a !== b) {
     return (value - a) / (b - a);
   }
-  return 0;
+  return value <= a ? 0 : 1;
 }
 
 export function FloorToMultiple(x: number, multiple: number) {
