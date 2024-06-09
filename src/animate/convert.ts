@@ -261,7 +261,6 @@ export class RenderDataConverter {
   private readonly singAlongMap: Record<string, string> = {};
 
   public constructor(
-    public readonly duration: number,
     public readonly config: AnimateConfig,
     public readonly lyrics: LyricsStore,
   ) {}
@@ -528,14 +527,14 @@ export class RenderDataConverter {
   }
   //#endregion Metadata converters
 
-  public convert(): LyricsRenderData {
+  public convert(duration: number): LyricsRenderData {
     const comments = this.convertCommentTracks(
       Typeof(this.lyrics.tracks.children, CommentTrack),
     );
     const lyrics = this.convertLyricsTracks();
     this.calcHint(lyrics);
     const ret = new LyricsRenderData(
-      this.duration,
+      duration,
       this.lyrics.meta,
       lyrics,
       comments,
