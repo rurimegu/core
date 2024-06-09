@@ -144,3 +144,19 @@ export interface Coord {
   x: number;
   y: number;
 }
+
+/**
+ * @param current Current value
+ * @param target Target value
+ * @returns A power of 2 multiple of current that is within [2/3, 4/3] of the target
+ */
+export function power2Near(current: number, target: number) {
+  // Ensures the return value is within [2/3, 4/3] of the target
+  while (current < (target * 2) / 3) {
+    current *= 2;
+  }
+  while (current > (target * 4) / 3) {
+    current /= 2;
+  }
+  return current;
+}

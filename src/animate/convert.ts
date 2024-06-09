@@ -1,7 +1,6 @@
 import {
   AnnotationBlock,
   BlockBase,
-  BpmStore,
   CallBlock,
   CallBlockBase,
   CallsTrack,
@@ -14,17 +13,19 @@ import {
   SingAlongBlock,
   TagsInfo,
   TagsStore,
+  Timing,
 } from '../store';
 import {
   ApproxEqual,
   InvalidStateError,
   IsFullWidth,
-  MAX_FRAMES,
+  MAX_TIME,
   Predicate,
   Typeof,
   ValueError,
+  power2Near,
 } from '../utils';
-import { AnimateConfig } from './config';
+import { AnimateConfig, IntervalData } from './config';
 import {
   AnnotationRenderData,
   CallBlockRenderData,
@@ -38,11 +39,9 @@ import {
   LyricsRenderData,
   LyricsTrackRenderData,
   RenderDataBase,
-  BpmRenderData,
   TagsRenderData,
   TagRenderData,
 } from './render-data';
-import { AnimateTiming } from './timing';
 
 abstract class LineConverter<
   B extends BlockBase,
@@ -211,7 +210,7 @@ class CallLineConverter extends LineConverter<
       }
       if (!isRepeat) break;
       repeatOffsets.push(
-        this.parent.timing.barToFrame(track.children[i].start) -
+        this.parent.lyrics.bpm.barToAudioTime(track.children[i].start) -
           blocks[0].start,
       );
     }
@@ -259,23 +258,19 @@ function createLineConverter(
 }
 
 export class RenderDataConverter {
-  public readonly timing: AnimateTiming;
-
   private readonly singAlongMap: Record<string, string> = {};
 
   public constructor(
-    duration: number,
+    public readonly duration: number,
     public readonly config: AnimateConfig,
     public readonly lyrics: LyricsStore,
-  ) {
-    this.timing = new AnimateTiming(duration, config, lyrics.bpm);
-  }
+  ) {}
 
   //#region Track converters
   public convertAnnotation(block: AnnotationBlock): AnnotationRenderData {
     return new AnnotationRenderData(
-      this.timing.barToFrame(block.start),
-      this.timing.barToFrame(block.end),
+      this.lyrics.bpm.barToAudioTime(block.start),
+      this.lyrics.bpm.barToAudioTime(block.end),
       block.text,
     );
   }
@@ -303,23 +298,18 @@ export class RenderDataConverter {
       leftPunctuations.length,
       text.length - rightPunctuations.length,
     );
-    // Just one frame for punctuation.
-    const startFrame = this.timing.barToFrame(block.start);
-    const endFrame = this.timing.barToFrame(block.end);
+    // Handle punctuation.
+    const start = this.lyrics.bpm.barToAudioTime(block.start);
+    const end = this.lyrics.bpm.barToAudioTime(block.end);
     if (leftPunctuations) {
       ret.push(
-        new LyricsBlockRenderData(
-          startFrame,
-          startFrame,
-          leftPunctuations,
-          colors,
-        ),
+        new LyricsBlockRenderData(start, start, leftPunctuations, colors),
       );
     }
     ret.push(
       new LyricsBlockRenderData(
-        startFrame,
-        endFrame,
+        start,
+        end,
         text,
         colors,
         annotations,
@@ -327,14 +317,7 @@ export class RenderDataConverter {
       ),
     );
     if (rightPunctuations) {
-      ret.push(
-        new LyricsBlockRenderData(
-          endFrame,
-          endFrame,
-          rightPunctuations,
-          colors,
-        ),
-      );
+      ret.push(new LyricsBlockRenderData(end, end, rightPunctuations, colors));
     }
     return ret;
   }
@@ -352,8 +335,8 @@ export class RenderDataConverter {
 
   public convertCallBlock(block: CallBlockBase): CallBlockRenderData {
     return new CallBlockRenderData(
-      this.timing.barToFrame(block.start),
-      this.timing.barToFrame(block.end),
+      this.lyrics.bpm.barToAudioTime(block.start),
+      this.lyrics.bpm.barToAudioTime(block.end),
       block.text,
       block instanceof SingAlongBlock,
     );
@@ -369,8 +352,8 @@ export class RenderDataConverter {
 
   public convertComment(block: CommentBlock): CommentRenderData {
     return new CommentRenderData(
-      this.timing.barToFrame(block.start),
-      this.timing.barToFrame(block.end),
+      this.lyrics.bpm.barToAudioTime(block.start),
+      this.lyrics.bpm.barToAudioTime(block.end),
       block.text,
     );
   }
@@ -437,7 +420,7 @@ export class RenderDataConverter {
     ret.push(this.processNextParagraph(firstLine, calls, true));
     while (!lyrics.isFinished) {
       lyrics.nextLine();
-      const nextStart = lyrics.currentLine?.start ?? MAX_FRAMES;
+      const nextStart = lyrics.currentLine?.start ?? MAX_TIME;
       ret.push(this.processNextParagraph(current!, calls, false));
       const placeholder = LyricsLineRenderData.Placeholder(
         current!.end,
@@ -486,17 +469,28 @@ export class RenderDataConverter {
     return ret;
   }
 
+  protected hintIntervalAt(timing: Timing | number): IntervalData {
+    const bpm = this.lyrics.bpm.at(timing).bpm;
+    const beatS = 60 / bpm;
+    const hintLyricsLine = power2Near(
+      beatS,
+      this.config.minIntervals.hintLyricsLine,
+    );
+    const hintCallLine = power2Near(
+      beatS,
+      this.config.minIntervals.hintCallLine,
+    );
+    return { hintLyricsLine, hintCallLine };
+  }
+
   public calcHint(data: LyricsTrackRenderData) {
     // Calculate hint for lyrics.
     let prevLyricsEnd = 0;
     const lyrics = data.flatMap((x) => x.lyrics).filter((x) => !x.isEmpty);
     lyrics.sort((a, b) => a.start - b.start);
     for (const lyric of lyrics) {
-      const voidTime = this.config.frameToTime(lyric.start - prevLyricsEnd);
-      // Add 1 frame for floating point error.
-      const minHint = this.timing.timeToFrame(
-        this.timing.hintIntervalAt(lyric.start + 1).hintLyricsLine,
-      );
+      const voidTime = lyric.start - prevLyricsEnd;
+      const minHint = this.hintIntervalAt(lyric.start).hintLyricsLine;
       if (voidTime >= this.config.minIntervals.hintLyricsLine)
         lyric.hint = minHint;
       prevLyricsEnd = Math.max(lyric.end, prevLyricsEnd);
@@ -506,11 +500,8 @@ export class RenderDataConverter {
     const calls = data.flatMap((x) => x.calls.flatMap((y) => y));
     calls.sort((a, b) => a.start - b.start);
     for (const call of calls) {
-      const voidTime = this.config.frameToTime(call.start - prevCallsEnd);
-      // Add 1 frame for floating point error.
-      const minHint = this.timing.timeToFrame(
-        this.timing.hintIntervalAt(call.start + 1).hintCallLine,
-      );
+      const voidTime = call.start - prevCallsEnd;
+      const minHint = this.hintIntervalAt(call.start).hintCallLine;
       if (voidTime >= this.config.minIntervals.hintCallLine)
         call.hint = minHint;
       prevCallsEnd = Math.max(call.end, prevCallsEnd);
@@ -519,10 +510,6 @@ export class RenderDataConverter {
   //#endregion Track converters
 
   //#region Metadata converters
-  protected convertBpm(bpm: BpmStore) {
-    return new BpmRenderData(bpm);
-  }
-
   protected convertTags(tags: TagsStore) {
     const ret = new TagsRenderData();
     const info = new TagsInfo();
@@ -548,11 +535,11 @@ export class RenderDataConverter {
     const lyrics = this.convertLyricsTracks();
     this.calcHint(lyrics);
     const ret = new LyricsRenderData(
-      this.timing.maxFrame,
+      this.duration,
       this.lyrics.meta,
       lyrics,
       comments,
-      this.convertBpm(this.lyrics.bpm),
+      this.lyrics.bpm,
       this.convertTags(this.lyrics.tags),
     );
     return ret;

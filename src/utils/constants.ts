@@ -17,4 +17,4 @@ export const RES_KEYS = {
   COVER: 'cover',
   SE_CALL: 'call',
 };
-export const MAX_FRAMES = 1e9;
+export const MAX_TIME = 1e9;

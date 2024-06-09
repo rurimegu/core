@@ -1,11 +1,11 @@
 import _ from 'lodash';
 import { BpmStore, LyricsMetadata } from '../store';
-import { Bisect, Color, MAX_FRAMES } from '../utils';
+import { Bisect, Color, MAX_TIME } from '../utils';
 
 export abstract class RenderDataBase {
-  /** Start time in frames. */
+  /** Start time in seconds. */
   public abstract get start(): number;
-  /** End time in frames. */
+  /** End time in seconds. */
   public abstract get end(): number;
 }
 
@@ -105,7 +105,7 @@ export class LineRenderData<T extends RenderDataBase> extends RenderDataBase {
 }
 
 export class LyricsLineRenderData extends LineRenderData<LyricsBlockRenderData> {
-  /** Hint frames before start time. If undefined, will not render hint animation. */
+  /** Hint seconds before start time. If undefined, will not render hint animation. */
   public hint?: number;
 
   public static Placeholder(start: number, end: number) {
@@ -141,7 +141,7 @@ export class LyricsLineRenderData extends LineRenderData<LyricsBlockRenderData> 
 }
 
 export class CallLineRenderData extends LineRenderData<CallBlockRenderData> {
-  /** Hint frames before start time. If undefined, will not render hint animation. */
+  /** Hint seconds before start time. If undefined, will not render hint animation. */
   public hint?: number;
 
   public constructor(
@@ -177,7 +177,7 @@ export class LyricsParagraphRenderData extends RenderDataBase {
       this.lyrics.start,
       this.calls
         .flatMap((c) => c)
-        .reduce((a, b) => Math.min(a, b.start), MAX_FRAMES),
+        .reduce((a, b) => Math.min(a, b.start), MAX_TIME),
     );
   }
 
@@ -236,10 +236,6 @@ export class CommentTrackRenderData extends Array<CommentLineRenderData> {
 //#endregion Tracks
 
 //#region Metadata
-export class BpmRenderData {
-  public constructor(public readonly store: BpmStore) {}
-}
-
 export class TagRenderData {
   public constructor(
     public readonly name: string,
@@ -257,7 +253,7 @@ export class LyricsRenderData extends RenderDataBase {
     public readonly meta: LyricsMetadata,
     public readonly lyrics: LyricsTrackRenderData,
     public readonly comments: CommentTrackRenderData,
-    public readonly bpms: BpmRenderData,
+    public readonly bpms: BpmStore,
     public readonly tags: TagsRenderData,
   ) {
     super();

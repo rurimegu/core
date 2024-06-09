@@ -4,7 +4,7 @@ import { InvalidStateError, ValueError } from '../utils/error';
 import { IDeserializable, ISerializable } from '../utils/io';
 import { persistStore } from './persist';
 import { IClonable } from '../utils/types';
-import { DEFAULT_BPM_DIV } from '../utils';
+import { ApproxLeq, Bisect, DEFAULT_BPM_DIV } from '../utils';
 
 interface BpmData {
   id: string;
@@ -115,18 +115,15 @@ export class BpmStore implements ISerializable, IDeserializable {
   }
 
   public at(bar: number | Timing): Bpm {
+    if (this.bpmPoints.length === 0) {
+      throw new InvalidStateError('No BPM points, expect at least 1');
+    }
     if (bar instanceof Timing) {
       bar = bar.value;
     }
-    for (let i = 0; i < this.bpmPoints.length; i++) {
-      const bpm = this.bpmPoints[i];
-      const next = this.bpmPoints[i + 1];
-      if (next && bar >= next.time.value) {
-        continue;
-      }
-      return bpm;
-    }
-    throw new InvalidStateError('No BPM points, expect at least 1');
+    const idx = Bisect(this.bpmPoints, (bpm) => ApproxLeq(bpm.time.value, bar));
+    if (idx === 0) return this.bpmPoints[0];
+    return this.bpmPoints[idx - 1];
   }
 
   public barToAudioTime(bar: number | Timing): number {
