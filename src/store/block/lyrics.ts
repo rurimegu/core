@@ -132,7 +132,6 @@ export class LyricsBlock
           blocks[blocks.length - 1].space = true;
           start = start.upperBound(alignDiv);
         }
-        start = start.upperBound(alignDiv);
         continue;
       }
       if (autosplit) {

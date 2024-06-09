@@ -123,7 +123,8 @@ export function SplitWords(text: string): string[] {
     // Kana.
     if (IsKana(c)) {
       j = i + 1;
-      while (IsSmallKana(text[j]) || text[j] === 'ー') j++;
+      while ((IsSmallKana(text[j]) && text[j] !== 'っ') || text[j] === 'ー')
+        j++;
       word += text.slice(i, j);
       pushWord();
       i = j - 1;

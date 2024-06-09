@@ -34,7 +34,7 @@ export abstract class TrackBlockBase<
 
   //#region Audio
   @observable public seVolume = 1;
-  @observable public muted = false;
+  @observable public muted = true;
 
   @action
   public setSeVolume(volume: number) {
@@ -113,7 +113,7 @@ export class CallsTrack extends TrackBlockBase<CallBlockBase> {
   public constructor(id?: string) {
     super(id);
     makeObservable(this);
-    this.muted = true;
+    this.muted = false;
   }
 
   @override
