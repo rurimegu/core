@@ -17,11 +17,18 @@ import {
 } from '../store';
 import {
   ApproxEqual,
+  ApproxGeq,
+  ApproxGtr,
+  ApproxLeq,
+  ApproxLess,
   InvalidStateError,
   IsFullWidth,
   MAX_TIME,
   Predicate,
+  PunctuationPrefix,
+  PunctuationSuffix,
   Typeof,
+  Unreachable,
   ValueError,
   power2Near,
 } from '../utils';
@@ -41,6 +48,7 @@ import {
   RenderDataBase,
   TagsRenderData,
   TagRenderData,
+  LyricsMultiParagraphRenderData,
 } from './render-data';
 
 abstract class LineConverter<
@@ -286,8 +294,13 @@ export class RenderDataConverter {
     const singAlong: string | undefined = this.singAlongMap[block.id];
     // Handle text.
     let text = block.bottomText;
-    let leftPunctuations = /^\p{P}*/u.exec(text)?.[0] ?? '';
-    let rightPunctuations = /\p{P}*$/u.exec(text)?.[0] ?? '';
+    let leftPunctuations = PunctuationPrefix(text);
+    let rightPunctuations = PunctuationSuffix(text);
+    while (rightPunctuations.endsWith('ー'))
+      rightPunctuations = rightPunctuations.substring(
+        0,
+        rightPunctuations.length - 1,
+      );
     if (leftPunctuations === text) {
       // Punctuation only.
       leftPunctuations = '';
@@ -431,6 +444,90 @@ export class RenderDataConverter {
     return ret;
   }
 
+  protected splitLyricsParagraph(
+    paragraph: LyricsParagraphRenderData,
+    idx: number,
+  ): [LyricsParagraphRenderData, LyricsParagraphRenderData] {
+    if (idx === 0)
+      return [paragraph, LyricsParagraphRenderData.PlaceHolder(0, 0)];
+    if (idx === paragraph.lyrics.children.length)
+      return [LyricsParagraphRenderData.PlaceHolder(0, 0), paragraph];
+    const rightLyrics = paragraph.lyrics.children.slice(idx);
+    const leftLyrics = paragraph.lyrics.children.slice(0, idx);
+    const rightCalls = paragraph.calls
+      .map((c) => c.filter((x) => ApproxGeq(x.start, rightLyrics[0].start)))
+      .filter((x) => x.length > 0);
+    const leftCalls = paragraph.calls
+      .map((c) => c.filter((x) => !rightCalls.flat().includes(x)))
+      .filter((x) => x.length > 0);
+    return [
+      new LyricsParagraphRenderData(
+        new LyricsLineRenderData(leftLyrics),
+        leftCalls,
+      ),
+      new LyricsParagraphRenderData(
+        new LyricsLineRenderData(rightLyrics),
+        rightCalls,
+      ),
+    ];
+  }
+
+  protected tryMergeTwoLyricsMultiParagraphs(
+    large: LyricsMultiParagraphRenderData,
+    small: LyricsMultiParagraphRenderData,
+  ) {
+    // Find space in current.
+    let prevEnd = large.start;
+    const sortedBlocks = large
+      .flatMap((p) => p.lyrics.children)
+      .sort((a, b) => a.start - b.start);
+    let insertBefore: LyricsBlockRenderData | undefined;
+    for (const block of sortedBlocks) {
+      if (
+        ApproxLess(prevEnd, block.start) &&
+        ApproxGtr(block.start, small.start)
+      ) {
+        insertBefore = block;
+        break;
+      }
+      prevEnd = Math.max(prevEnd, block.end);
+    }
+    // Try splitting the paragraph.
+    if (!insertBefore) return false;
+    const idx = large.findIndex((p) =>
+      p.lyrics.children.includes(insertBefore),
+    );
+    if (idx === -1) throw new Unreachable('Block not found in paragraph.');
+    const oldParagraph = large[idx];
+    const newParagraphs = this.splitLyricsParagraph(
+      oldParagraph,
+      oldParagraph.lyrics.children.indexOf(insertBefore),
+    );
+    newParagraphs.push(...small);
+    large.splice(idx, 1, ...newParagraphs);
+    large.finalize();
+    return true;
+  }
+
+  protected tryMergeLyricsMultiParagraphs(track: LyricsTrackRenderData) {
+    track.finalize();
+    for (let i = 0; i < track.length - 1; i++) {
+      const current = track[i];
+      if (current.isEmpty) continue;
+      for (let j = i + 1; j < track.length - 1; j++) {
+        const next = track[i + 1];
+        if (next.isEmpty) continue;
+        if (ApproxGeq(next.start, current.end)) break;
+        if (ApproxLeq(current.end, next.end)) continue;
+        if (this.tryMergeTwoLyricsMultiParagraphs(current, next)) {
+          track.splice(j, 1);
+          i--;
+          break;
+        }
+      }
+    }
+  }
+
   public convertLyricsTracks(): LyricsTrackRenderData {
     const trackConvs = (
       this.lyrics.tracks.children.filter(
@@ -446,7 +543,11 @@ export class RenderDataConverter {
     const processCurrentLyricsAndCalls = () => {
       if (mainLyrics) {
         // Process lyrics and calls.
-        ret.push(...this.processLyricsAndCalls(mainLyrics, calls));
+        ret.push(
+          ...this.processLyricsAndCalls(mainLyrics, calls).map(
+            (l) => new LyricsMultiParagraphRenderData(l),
+          ),
+        );
       } else if (calls.length > 0) {
         throw new ValueError('Call tracks must not appear before lyrics.');
       }
@@ -464,7 +565,8 @@ export class RenderDataConverter {
       }
     }
     processCurrentLyricsAndCalls();
-    ret.finalize();
+    this.tryMergeLyricsMultiParagraphs(ret);
+    ret.removeEmpty();
     return ret;
   }
 
@@ -485,7 +587,10 @@ export class RenderDataConverter {
   public calcHint(data: LyricsTrackRenderData) {
     // Calculate hint for lyrics.
     let prevLyricsEnd = 0;
-    const lyrics = data.flatMap((x) => x.lyrics).filter((x) => !x.isEmpty);
+    const lyrics = data
+      .flat()
+      .flatMap((x) => x.lyrics)
+      .filter((x) => !x.isEmpty);
     lyrics.sort((a, b) => a.start - b.start);
     for (const lyric of lyrics) {
       const voidTime = lyric.start - prevLyricsEnd;
@@ -496,7 +601,7 @@ export class RenderDataConverter {
     }
     // Calculate hint for calls.
     let prevCallsEnd = 0;
-    const calls = data.flatMap((x) => x.calls.flatMap((y) => y));
+    const calls = data.flat().flatMap((x) => x.calls.flatMap((y) => y));
     calls.sort((a, b) => a.start - b.start);
     for (const call of calls) {
       const voidTime = call.start - prevCallsEnd;

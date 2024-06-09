@@ -180,6 +180,12 @@ export class LyricsParagraphRenderData extends RenderDataBase {
     super();
   }
 
+  public static PlaceHolder(start: number, end: number) {
+    return new LyricsParagraphRenderData(
+      LyricsLineRenderData.Placeholder(start, end),
+    );
+  }
+
   public override get start() {
     return Math.min(
       this.lyrics.start,
@@ -192,28 +198,58 @@ export class LyricsParagraphRenderData extends RenderDataBase {
   public override get end() {
     return Math.max(
       this.lyrics.end,
-      this.calls.flatMap((c) => c).reduce((a, b) => Math.max(a, b.end), 0),
+      this.calls.flat().reduce((a, b) => Math.max(a, b.end), 0),
     );
   }
 
   public get isEmpty() {
     return (
       this.lyrics.isEmpty &&
-      this.calls.flatMap((c) => c).every((x) => x.children.length === 0)
+      this.calls.flat().every((x) => x.children.length === 0)
     );
   }
 
   public finalize() {
     this.lyrics.finalize();
-    _.remove(this.calls, (x) => x.length === 0);
+  }
+
+  public removeEmpty() {
+    _.remove(this.calls, (x) => x.every((y) => y.children.length === 0));
   }
 }
 
-export class LyricsTrackRenderData extends Array<LyricsParagraphRenderData> {
+export class LyricsMultiParagraphRenderData extends Array<LyricsParagraphRenderData> {
   public finalize() {
     this.forEach((x) => x.finalize());
-    _.remove(this, (x) => x.isEmpty);
     this.sort((a, b) => a.start - b.start);
+  }
+
+  public get start() {
+    return this[0].start;
+  }
+
+  public get end() {
+    return this[this.length - 1].end;
+  }
+
+  public get isEmpty() {
+    return this.every((x) => x.isEmpty);
+  }
+
+  public removeEmpty() {
+    _.remove(this, (x) => x.isEmpty);
+  }
+}
+
+export class LyricsTrackRenderData extends Array<LyricsMultiParagraphRenderData> {
+  public finalize() {
+    this.forEach((x) => x.finalize());
+    this.sort((a, b) => a.start - b.start);
+  }
+
+  public removeEmpty() {
+    this.forEach((x) => x.removeEmpty());
+    _.remove(this, (x) => x.isEmpty);
   }
 }
 

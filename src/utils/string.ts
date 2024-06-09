@@ -1,7 +1,7 @@
 import { eastAsianWidth } from 'get-east-asian-width';
 import { LYRICS_SEP } from './constants';
 
-const PUNCTUATIONS = ['ー'];
+const PUNCTUATIONS = ['ー', '→'];
 const JPN_SMALL = 'ぁぃぅぇぉっゃゅょァィゥェォッャュョ';
 
 export function FormatTime(time: number, precision = 0) {
@@ -41,6 +41,24 @@ export function IsDigit(code: number) {
 
 export function IsPunctuation(char: string) {
   return /^\p{P}$/u.test(char) || PUNCTUATIONS.includes(char);
+}
+
+export function PunctuationPrefix(s: string) {
+  for (let i = 0; i < s.length; i++) {
+    if (!IsPunctuation(s[i])) {
+      return s.slice(0, i);
+    }
+  }
+  return s;
+}
+
+export function PunctuationSuffix(s: string) {
+  for (let i = s.length - 1; i >= 0; i--) {
+    if (!IsPunctuation(s[i])) {
+      return s.slice(i + 1);
+    }
+  }
+  return s;
 }
 
 export function IsLeftParenthesis(char: string) {
