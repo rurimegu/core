@@ -296,11 +296,10 @@ export class RenderDataConverter {
     let text = block.bottomText;
     let leftPunctuations = PunctuationPrefix(text);
     let rightPunctuations = PunctuationSuffix(text);
-    while (rightPunctuations.endsWith('ー'))
-      rightPunctuations = rightPunctuations.substring(
-        0,
-        rightPunctuations.length - 1,
-      );
+    const rightLongIdx = rightPunctuations.lastIndexOf('ー');
+    if (rightLongIdx >= 0)
+      rightPunctuations = rightPunctuations.substring(rightLongIdx + 1);
+
     if (leftPunctuations === text) {
       // Punctuation only.
       leftPunctuations = '';
