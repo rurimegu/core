@@ -15,6 +15,7 @@ export interface RenderTemplateTypeData {
 export interface RenderTemplateData {
   lyricsBlock?: RenderTemplateTypeData;
   lyricsHint?: RenderTemplateTypeData;
+  lyricsColumn?: RenderTemplateTypeData;
 }
 
 export interface AnimateConfigData {
