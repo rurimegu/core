@@ -1,5 +1,5 @@
 import { template } from 'lodash';
-import { ISerializable, OptionallAssignRecursive } from '../utils';
+import { ISerializable, OptionalAssignRecursive } from '../utils';
 import { ResourceMapping, ResourceMappingData } from './resources';
 
 export interface IntervalData {
@@ -74,7 +74,7 @@ export class AnimateConfig implements ISerializable {
     this.width = data.width ?? this.width;
     this.height = data.height ?? this.height;
     this.minIntervals = data.minIntervals ?? this.minIntervals;
-    if (data.template) OptionallAssignRecursive(this.template, data.template);
+    if (data.template) OptionalAssignRecursive(this.template, data.template);
     else this.template = {};
   }
   //#endregion ISerializable

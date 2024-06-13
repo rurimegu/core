@@ -57,15 +57,16 @@ export type Handler<T> = (data: T) => void;
 
 export type Predicate<T> = (value: T) => boolean;
 
-export function OptionallAssignRecursive(
-  target: Record<string, any>,
-  source: Record<string, any>,
+export function OptionalAssignRecursive(
+  target?: Record<string, any>,
+  source?: Record<string, any>,
 ) {
+  if (source === undefined || target === undefined) return;
   for (const key in source) {
     if (source[key] === undefined) continue;
     if (typeof source[key] === 'object') {
       if (target[key] === undefined) target[key] = {};
-      OptionallAssignRecursive(target[key], source[key]);
+      OptionalAssignRecursive(target[key], source[key]);
     } else {
       target[key] = source[key];
     }
