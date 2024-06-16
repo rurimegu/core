@@ -1,5 +1,4 @@
-import { template } from 'lodash';
-import { ISerializable, OptionalAssignRecursive } from '../utils';
+import { DataError, ISerializable, OptionalAssignRecursive } from '../utils';
 import { ResourceMapping, ResourceMappingData } from './resources';
 
 export interface IntervalData {
@@ -27,9 +26,12 @@ export interface AnimateConfigData {
   height?: number;
   minIntervals?: IntervalData;
   template?: RenderTemplateData;
+  version?: number;
 }
 
 export class AnimateConfig implements ISerializable {
+  public static readonly VERSION = 1;
+
   public readonly resources = new ResourceMapping();
   public fps = 60;
   public openTime = 3;
@@ -40,6 +42,7 @@ export class AnimateConfig implements ISerializable {
     hintCallLine: 1.5,
   };
   public template: RenderTemplateData = {};
+  public readonly version = AnimateConfig.VERSION;
 
   //#region Timing
   public timeToFrame(s: number) {
@@ -56,19 +59,25 @@ export class AnimateConfig implements ISerializable {
   //#endregion Timing
 
   //#region ISerializable
-  public serialize() {
+  public serialize(): AnimateConfigData {
     return {
       resources: this.resources.serialize(),
       fps: this.fps,
       openTime: this.openTime,
       width: this.width,
       height: this.height,
-      minHintIntervals: this.minIntervals,
-      template,
+      minIntervals: this.minIntervals,
+      template: this.template,
+      version: this.version,
     };
   }
 
   public deserialize(data: AnimateConfigData) {
+    if (data.version && data.version > this.version) {
+      throw new DataError(
+        `Unsupported version ${data.version}, loader version ${this.version}`,
+      );
+    }
     this.resources.deserialize(data.resources);
     this.fps = data.fps ?? this.fps;
     this.openTime = data.openTime ?? this.openTime;

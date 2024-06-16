@@ -39,9 +39,7 @@ export class ResourceMapping implements ISerializable {
 
   //#region ISerializable
   public serialize() {
-    return {
-      resources: this.resources,
-    };
+    return this.resources;
   }
 
   public deserialize(data: ResourceMappingData) {
