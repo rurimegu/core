@@ -1,91 +1,50 @@
-import { DataError, ISerializable, OptionalAssignRecursive } from '../utils';
-import { ResourceMapping, ResourceMappingData } from './resources';
+import { ResourceMapping } from './resources';
+import { z } from 'zod';
 
-export interface IntervalData {
-  hintLyricsLine: number;
-  hintCallLine: number;
-}
+export const IntervalData = z
+  .object({
+    hintLyricsLine: z.number().min(0).max(1e5).default(3),
+    hintCallLine: z.number().min(0).max(1e5).default(1.5),
+  })
+  .strict();
+export type IntervalData = z.infer<typeof IntervalData>;
 
-export interface RenderTemplateTypeData {
-  type: string;
-  options?: Record<string, any>;
-}
+export const RenderTemplateWithDefault = (defaultType: string) =>
+  z
+    .object({
+      type: z.string().default(defaultType),
+      options: z.record(z.string().max(128), z.any()).default({}),
+    })
+    .strict();
+export type RenderTemplateData = z.infer<
+  ReturnType<typeof RenderTemplateWithDefault>
+>;
 
-export interface RenderTemplateData {
-  lyricsBlock?: RenderTemplateTypeData;
-  lyricsHint?: RenderTemplateTypeData;
-  lyricsColumn?: RenderTemplateTypeData;
-  metaColumn?: RenderTemplateTypeData;
-}
+const RenderTemplates = z
+  .object({
+    lyricsBlock: RenderTemplateWithDefault('default').default({}),
+    lyricsHint: RenderTemplateWithDefault('default').default({}),
+    lyricsColumn: RenderTemplateWithDefault('default').default({}),
+    metaColumn: RenderTemplateWithDefault('default').default({}),
+  })
+  .strict();
+type RenderTemplates = z.infer<typeof RenderTemplates>;
 
-export interface AnimateConfigData {
-  resources: ResourceMappingData;
-  fps?: number;
-  openTime?: number;
-  width?: number;
-  height?: number;
-  minIntervals?: IntervalData;
-  template?: RenderTemplateData;
-  version?: number;
-}
+export const AnimateConfig = z
+  .object({
+    resources: z
+      .record(z.string().max(128), z.string().max(1024))
+      .default({})
+      .transform((v) => new ResourceMapping(v)),
+    fps: z.number().min(1).max(240).default(30),
+    openTime: z.number().min(0).max(1e5).default(3),
+    width: z.number().int().min(1).max(1e4).default(1280),
+    height: z.number().int().min(1).max(1e4).default(720),
+    minIntervals: IntervalData.default({}),
+    template: RenderTemplates.default({}),
+    version: z.number().int().min(1).max(1e5).optional(),
+  })
+  .strict();
 
-export class AnimateConfig implements ISerializable {
-  public static readonly VERSION = 1;
-
-  public readonly resources = new ResourceMapping();
-  public fps = 60;
-  public openTime = 3;
-  public width = 1280;
-  public height = 720;
-  public minIntervals: IntervalData = {
-    hintLyricsLine: 3,
-    hintCallLine: 1.5,
-  };
-  public template: RenderTemplateData = {};
-  public readonly version = AnimateConfig.VERSION;
-
-  //#region Timing
-  public timeToFrame(s: number) {
-    return Math.round(s * this.fps);
-  }
-
-  public frameToTime(frame: number) {
-    return frame / this.fps;
-  }
-
-  public get openFrames() {
-    return this.timeToFrame(this.openTime);
-  }
-  //#endregion Timing
-
-  //#region ISerializable
-  public serialize(): AnimateConfigData {
-    return {
-      resources: this.resources.serialize(),
-      fps: this.fps,
-      openTime: this.openTime,
-      width: this.width,
-      height: this.height,
-      minIntervals: this.minIntervals,
-      template: this.template,
-      version: this.version,
-    };
-  }
-
-  public deserialize(data: AnimateConfigData) {
-    if (data.version && data.version > this.version) {
-      throw new DataError(
-        `Unsupported version ${data.version}, loader version ${this.version}`,
-      );
-    }
-    this.resources.deserialize(data.resources);
-    this.fps = data.fps ?? this.fps;
-    this.openTime = data.openTime ?? this.openTime;
-    this.width = data.width ?? this.width;
-    this.height = data.height ?? this.height;
-    this.minIntervals = data.minIntervals ?? this.minIntervals;
-    if (data.template) OptionalAssignRecursive(this.template, data.template);
-    else this.template = {};
-  }
-  //#endregion ISerializable
-}
+export type AnimateConfigInput = z.input<typeof AnimateConfig>;
+export type AnimateConfig = z.output<typeof AnimateConfig>;

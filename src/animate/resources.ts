@@ -1,9 +1,7 @@
 import { ISerializable, RES_KEYS } from '../utils';
 
-export type ResourceMappingData = Record<string, string>;
-
 export class ResourceMapping implements ISerializable {
-  public resources: Record<string, string> = {};
+  public constructor(public readonly resources: Record<string, string>) {}
 
   public get lyricsPath() {
     return this.resources[RES_KEYS.LYRICS];
@@ -40,10 +38,6 @@ export class ResourceMapping implements ISerializable {
   //#region ISerializable
   public serialize() {
     return this.resources;
-  }
-
-  public deserialize(data: ResourceMappingData) {
-    this.resources = data ?? {};
   }
   //#endregion ISerializable
 }
