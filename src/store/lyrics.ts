@@ -22,7 +22,7 @@ export class LyricsStore implements ISerializable, IDeserializable {
   public static readonly VERSION = 1;
 
   public constructor(
-    public readonly tracks = new Tracks('main-tracks'),
+    public readonly tracks = new Tracks(),
     public readonly bpm = new BpmStore(),
     public readonly persist = persistStore,
     public readonly tags = new TagsStore(),

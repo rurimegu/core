@@ -36,7 +36,7 @@ export function CreateBlock(data: BlockData & BlockDataHelpers): BlockBase {
   if (!BlockClass) {
     throw new ValueError(`Block type ${data.type} is not registered`);
   }
-  const block = new BlockClass(data.id);
+  const block = new BlockClass();
   block.deserialize(data as any);
   return block;
 }

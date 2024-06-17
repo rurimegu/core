@@ -8,8 +8,9 @@ export type TracksData = ParentBlockData;
 export class Tracks extends ParentBlockBase<TrackBlock> {
   public override readonly type = BlockType.Tracks;
 
-  public constructor(id?: string) {
-    super(id);
+  public constructor() {
+    super();
+    this.id_ = 'main-tracks';
     makeObservable(this);
   }
 

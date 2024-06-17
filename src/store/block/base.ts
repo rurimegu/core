@@ -94,8 +94,8 @@ export abstract class BlockBase
   public abstract get start(): Timing;
   public abstract get end(): Timing;
 
-  public constructor(id?: string) {
-    this.id_ = id || `bl-${persistStore.nextId}`;
+  public constructor() {
+    this.id_ = `bl-${persistStore.nextId}`;
     makeObservable(this);
   }
 
@@ -176,8 +176,8 @@ export abstract class ParentBlockBase<T extends BlockBase>
   @observable
   protected children_ = observable.array<T>([], { deep: false });
 
-  public constructor(id?: string) {
-    super(id);
+  public constructor() {
+    super();
     makeObservable(this);
   }
 

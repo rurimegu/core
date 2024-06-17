@@ -62,8 +62,8 @@ export abstract class CallBlockBase
   @observable
   public space = false;
 
-  public constructor(id?: string) {
-    super(id);
+  public constructor() {
+    super();
     makeObservable(this);
   }
 
@@ -122,8 +122,8 @@ export class CallBlock extends CallBlockBase implements IWithSpacing {
     return this.parent_ as CallsTrack;
   }
 
-  public constructor(id?: string) {
-    super(id);
+  public constructor() {
+    super();
     makeObservable(this);
   }
 
@@ -227,8 +227,8 @@ export class SingAlongBlock extends CallBlockBase implements IWithSpacing {
 
   protected readonly ref_ = new MRef<LyricsBlock, SingAlongBlock>(this);
 
-  public constructor(id?: string) {
-    super(id);
+  public constructor() {
+    super();
     this.text_ = '';
     makeObservable(this);
   }

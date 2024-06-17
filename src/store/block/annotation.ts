@@ -45,8 +45,8 @@ export class AnnotationBlock
   @observable public override start: Timing = Timing.INVALID;
   @observable public override end: Timing = Timing.INVALID;
 
-  public constructor(id?: string) {
-    super(id);
+  public constructor() {
+    super();
     makeObservable(this);
   }
 
@@ -100,8 +100,9 @@ export class AnnotationBlock
   }
 
   public clone(): AnnotationBlock {
-    const ret = new AnnotationBlock(this.id);
+    const ret = new AnnotationBlock();
     runInAction(() => {
+      ret.id_ = this.id;
       ret.text = this.text;
       ret.start = this.start;
       ret.end = this.end;

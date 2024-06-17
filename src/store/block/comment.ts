@@ -40,8 +40,8 @@ export class CommentBlock
     return this.parent_ as CommentTrack;
   }
 
-  public constructor(id?: string) {
-    super(id);
+  public constructor() {
+    super();
     makeObservable(this);
   }
 

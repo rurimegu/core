@@ -96,8 +96,8 @@ export class LyricsTrack
 {
   public readonly type = BlockType.LyricsTrack;
 
-  public constructor(id?: string) {
-    super(id);
+  public constructor() {
+    super();
     makeObservable(this);
   }
 
@@ -110,8 +110,8 @@ export class LyricsTrack
 export class CallsTrack extends TrackBlockBase<CallBlockBase> {
   public override readonly type = BlockType.CallsTrack;
 
-  public constructor(id?: string) {
-    super(id);
+  public constructor() {
+    super();
     makeObservable(this);
     this.muted = false;
   }
@@ -130,8 +130,8 @@ export class CallsTrack extends TrackBlockBase<CallBlockBase> {
 export class CommentTrack extends TrackBlockBase<CommentBlock> {
   public override readonly type = BlockType.CommentTrack;
 
-  public constructor(id?: string) {
-    super(id);
+  public constructor() {
+    super();
     makeObservable(this);
   }
 }

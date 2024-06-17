@@ -54,8 +54,8 @@ export class LyricsBlock
 
   public readonly tags = LyricsBlock.tagsStore.createRef();
 
-  public constructor(id?: string) {
-    super(id);
+  public constructor() {
+    super();
     makeObservable(this);
   }
 
