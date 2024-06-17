@@ -11,13 +11,14 @@ import {
   ICopyable,
   IProviderOrValue,
   IWithSpacing,
-  SimpleFunc,
   NoopFn,
   IWithId,
+  UndoFunc,
 } from '../utils/types';
 import { TagsStore, LyricsTag, TagsRef } from '../store/tags';
 import { AnnotationBlock, LyricsBlock } from '../store';
-import { MRef, UFRef, refManager } from '../utils';
+import { UFRef } from '../utils';
+import { refManager } from '../utils/ref';
 
 //#region Command Base
 export abstract class Command {
@@ -117,16 +118,27 @@ export class NoopCommand extends Command {
   }
 }
 
+export class DynamicCommand extends Command {
+  protected undoFn: UndoFunc = NoopFn;
+
+  public constructor(protected readonly executeFn: () => UndoFunc) {
+    super();
+  }
+
+  public execute(): void {
+    this.undoFn = this.executeFn();
+  }
+
+  public undo(): void {
+    this.undoFn();
+    this.undoFn = NoopFn;
+  }
+}
 //#endregion Command Base
 
 //#region Block Commands
-interface RemovedBlockData<T extends BlockBase, U extends BlockBase> {
-  block: T;
-  refs?: MRef<T, U>[];
-}
-
 export class RemoveBlocksCommand<T extends BlockBase> extends Command {
-  protected prevBlocks: RemovedBlockData<T, any>[] = [];
+  protected prevBlocks: T[] = [];
   protected cs = new CommandSet();
   protected idx = -1;
 
@@ -139,42 +151,21 @@ export class RemoveBlocksCommand<T extends BlockBase> extends Command {
   }
 
   public execute(): void {
-    if (typeof this.item !== 'number') {
-      this.idx = this.parent.indexOf(this.item);
-      if (this.idx < 0) return;
-    } else {
-      this.idx = this.item;
-    }
-    const prevBlocks = this.parent.splice(this.idx, this.count);
-    this.prevBlocks = [];
+    this.idx =
+      typeof this.item === 'number'
+        ? this.item
+        : this.parent.indexOf(this.item);
+    if (this.idx < 0) return;
+    this.prevBlocks = this.parent.splice(this.idx, this.count);
     this.cs.clear();
-    for (const b of prevBlocks) {
-      const refs = refManager.get(b.id)?.slice();
-      const blockData: RemovedBlockData<T, any> = {
-        block: b,
-        refs,
-      };
-      if (refs) {
-        this.cs.add(
-          ...refs
-            .map((r) => r.parent)
-            .filter((b) => b instanceof BlockBase)
-            .map((b: BlockBase) => new RemoveBlocksCommand(b.parent!, b)),
-        );
-        refManager.delete(b.id);
-      }
-      this.prevBlocks.push(blockData);
-    }
+    this.cs.add(...this.prevBlocks.map((b) => refManager.deleteCmd(b.id)));
     this.cs.execute();
   }
 
   public undo(): void {
     if (this.idx < 0) return;
-    for (const b of this.prevBlocks) {
-      if (b.refs) refManager.recover(b.block, ...b.refs);
-    }
     this.cs.undo();
-    this.parent.splice(this.idx, 0, ...this.prevBlocks.map((b) => b.block));
+    this.parent.splice(this.idx, 0, ...this.prevBlocks);
   }
 }
 
@@ -380,23 +371,11 @@ export class SetSpaceCommand extends Command {
 //#endregion Block Commands
 
 //#region Call Commands
-export class MergeUFCommand<T extends IWithId> extends Command {
-  protected undoFunc: SimpleFunc = NoopFn;
+export class MergeUFCommand<T extends IWithId> extends DynamicCommand {
+  protected undoFunc: UndoFunc = NoopFn;
 
-  public constructor(
-    public readonly lhs: UFRef<T>,
-    public readonly rhs: UFRef<T>,
-  ) {
-    super();
-  }
-
-  public execute(): void {
-    this.undoFunc = this.lhs.merge(this.rhs);
-  }
-
-  public undo(): void {
-    this.undoFunc();
-    this.undoFunc = NoopFn;
+  public constructor(lhs: UFRef<T>, rhs: UFRef<T>) {
+    super(() => lhs.merge(rhs));
   }
 }
 //#endregion Call Commands

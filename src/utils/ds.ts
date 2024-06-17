@@ -1,11 +1,5 @@
 import { observable, makeObservable, action, computed } from 'mobx';
-import {
-  IClonable,
-  IWithId,
-  NoopFn,
-  RemoveUndefined,
-  SimpleFunc,
-} from './types';
+import { IWithId, NoopFn, RemoveUndefined, UndoFunc } from './types';
 import { DataError, InvalidStateError, ValueError } from './error';
 import { ISerializable } from './io';
 import { persistStore } from '../store';
@@ -201,84 +195,6 @@ export class FutureMap {
   }
 }
 
-export class RefManager {
-  protected readonly refs = new Map<string, MRef<any, any>[]>();
-
-  public unset(id: string, ref: MRef<any, any>) {
-    const refs = this.refs.get(id);
-    if (refs) {
-      const index = refs.indexOf(ref);
-      if (index >= 0) {
-        refs.splice(index, 1);
-      }
-    }
-  }
-
-  public get(id: string): MRef<any, any>[] | undefined {
-    return this.refs.get(id);
-  }
-
-  public set(id: string, value: MRef<any, any>) {
-    const refs = this.refs.get(id);
-    if (refs) {
-      refs.push(value);
-    } else {
-      this.refs.set(id, [value]);
-    }
-  }
-
-  public delete(id: string) {
-    const refs = this.refs.get(id);
-    if (refs) {
-      for (const ref of refs.slice()) {
-        ref.set(undefined);
-      }
-    }
-  }
-
-  public clear() {
-    this.refs.clear();
-  }
-
-  public recover<T extends IWithId>(target: T, ...values: MRef<any, any>[]) {
-    for (const value of values) {
-      value.set(target);
-    }
-  }
-}
-
-export const refManager = new RefManager();
-
-export class MRef<T extends IWithId, U> implements IClonable<MRef<T, U>> {
-  @observable
-  protected value?: T;
-
-  public constructor(
-    public readonly parent: U,
-    value?: T,
-  ) {
-    this.set(value);
-    makeObservable(this);
-  }
-
-  public get(): T | undefined {
-    return this.value;
-  }
-
-  @action
-  public set(value: T | undefined) {
-    if (this.value) refManager.unset(this.value.id, this);
-    this.value = value;
-    if (value) refManager.set(value.id, this);
-  }
-
-  //#region IClonable
-  public clone(): MRef<T, U> {
-    return new MRef<T, U>(this.parent, this.value);
-  }
-  //#endregion IClonable
-}
-
 export interface UFRefData {
   id: string;
   ref?: string;
@@ -360,7 +276,7 @@ export class UFRef<T extends IWithId> implements IWithId, ISerializable {
   }
 
   @action
-  public merge(rhs: UFRef<T>): SimpleFunc {
+  public merge(rhs: UFRef<T>): UndoFunc {
     let root1 = this._root;
     let root2 = rhs._root;
     if (root1 === root2) return NoopFn;

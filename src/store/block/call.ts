@@ -18,10 +18,11 @@ import {
   Typeof,
   UniqueBy,
 } from '../../utils';
-import { MRef, UFRef, UFRefData } from '../../utils/ds';
+import { UFRef, UFRefData } from '../../utils/ds';
+import { MRef } from '../../utils/ref';
 import { LyricsBlock } from './lyrics';
 import { CallsTrack } from './track';
-import { MergeUFCommand } from '../../commands';
+import { MergeUFCommand, RemoveBlocksCommand, Command } from '../../commands';
 
 export enum CallType {
   Hi = 'Hi',
@@ -225,7 +226,11 @@ export class SingAlongBlock extends CallBlockBase implements IWithSpacing {
   public override readonly type: BlockType = BlockType.SingAlong;
   public override readonly resizable = false;
 
-  protected readonly ref_ = new MRef<LyricsBlock, SingAlongBlock>(this);
+  protected readonly ref_ = new MRef<LyricsBlock, SingAlongBlock>(this, () => {
+    return this.parent
+      ? new RemoveBlocksCommand(this.parent, this)
+      : Command.Noop();
+  });
 
   public constructor() {
     super();

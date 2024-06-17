@@ -34,6 +34,9 @@ export interface IWithSpacing {
   get space(): boolean;
   set space(value: boolean);
 }
+export interface IDispoable {
+  dispose(): void;
+}
 export function Typeof<U>(arr: any[], type: Constructor<U>): U[] {
   return arr.filter((x) => x instanceof type) as U[];
 }
@@ -52,6 +55,7 @@ export function EnumValues(obj: any): string[] {
   return Object.keys(obj).map((key) => obj[key]);
 }
 export type SimpleFunc = () => void;
+export type UndoFunc = SimpleFunc;
 
 export type Handler<T> = (data: T) => void;
 
