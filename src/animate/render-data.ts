@@ -165,7 +165,7 @@ export class CallLineRenderData extends LineRenderData<CallBlockRenderData> {
     return super.end;
   }
 
-  public get end() {
+  public override get end() {
     return this.firstEnd + this.repeatOffsets[this.repeatOffsets.length - 1];
   }
 }

@@ -1,4 +1,4 @@
-import { computed, makeObservable, observable, override } from 'mobx';
+import { action, computed, makeObservable, observable, override } from 'mobx';
 import { Timing } from '../range';
 import {
   BlockBase,
@@ -17,12 +17,14 @@ import {
   IWithSpacing,
   Typeof,
   UniqueBy,
+  ISerializable,
+  ValueError,
 } from '../../utils';
-import { UFRef, UFRefData } from '../../utils/ds';
-import { MRef } from '../../utils/ref';
+import { MRef, RemoveRefFn } from '../../utils/ref';
 import { LyricsBlock } from './lyrics';
 import { CallsTrack } from './track';
-import { MergeUFCommand, RemoveBlocksCommand, Command } from '../../commands';
+import { RemoveBlocksCommand, Command, DynamicCommand } from '../../commands';
+import { persistStore } from '../persist';
 
 export enum CallType {
   Hi = 'Hi',
@@ -41,13 +43,101 @@ export interface CallBlockBaseData extends BlockData {
 export interface CallBlockData extends CallBlockBaseData {
   start: string;
   end: string;
-  ref: UFRefData;
+  ref?: string;
   text: string;
 }
 
 export interface SingAlongBlockData extends CallBlockBaseData {
   ref?: string;
   text: string;
+}
+
+export class CallGroup implements ISerializable {
+  @observable
+  public id: string;
+
+  @observable
+  protected readonly arr = observable.array<MRef<CallBlock, CallGroup>>([], {
+    deep: false,
+  });
+
+  protected static readonly REMOVE_REF_FN: RemoveRefFn<CallBlock, CallGroup> = (
+    r,
+  ) => {
+    return new DynamicCommand(() => {
+      const idx = r.container.arr.indexOf(r);
+      r.container.arr.splice(idx, 1);
+      return () => {
+        r.container.arr.splice(idx, 0, r);
+      };
+    });
+  };
+
+  protected createRef(item: CallBlock): MRef<CallBlock, CallGroup> {
+    const ref = new MRef(this, CallGroup.REMOVE_REF_FN);
+    ref.set(item);
+    return ref;
+  }
+
+  public constructor() {
+    this.id = `cg-${persistStore.nextId}`;
+    makeObservable(this);
+  }
+
+  @action
+  public push(...items: CallBlock[]): number {
+    const ret = this.arr.push(...items.map((i) => this.createRef(i)));
+    this.arr.sort((a, b) => a.get()!.start.compare(b.get()!.start));
+    return ret;
+  }
+
+  @action
+  public remove(...items: CallBlock[]): void {
+    items.forEach((item) => {
+      const idx = this.arr.findIndex((r) => r.get() === item);
+      if (idx < 0)
+        throw new ValueError(
+          `Cannot remove ${item.id} from CallGroup ${this.id} : not found`,
+        );
+      this.arr.splice(idx, 1);
+    });
+  }
+
+  @action
+  public replace(...items: CallBlock[]): void {
+    this.arr.replace(items.map((i) => this.createRef(i)));
+  }
+
+  *[Symbol.iterator](): IterableIterator<CallBlock> {
+    for (const ref of this.arr) {
+      yield ref.get()!;
+    }
+  }
+
+  @computed
+  public get first() {
+    return this.arr[0]?.get();
+  }
+
+  @computed
+  public get last() {
+    return this.arr[this.arr.length - 1]?.get();
+  }
+
+  @computed
+  public get length() {
+    return this.arr.length;
+  }
+
+  //#region ISerializable
+  public serialize(): string {
+    return this.id;
+  }
+
+  public deserialize(data: string): void {
+    this.id = data;
+  }
+  //#endregion ISerializable
 }
 
 export abstract class CallBlockBase
@@ -109,8 +199,8 @@ export abstract class CallBlockBase
 export class CallBlock extends CallBlockBase implements IWithSpacing {
   public override readonly type: BlockType = BlockType.Call;
 
-  // Union find ref to self.
-  protected readonly ref_ = new UFRef<CallBlock>(this);
+  @observable
+  protected group_?: CallGroup;
 
   @observable
   public start = Timing.INVALID;
@@ -155,24 +245,33 @@ export class CallBlock extends CallBlockBase implements IWithSpacing {
     this.group.selfText = text;
   }
 
-  /** Root of union find. */
   @computed
   public get group(): CallBlock {
-    return this.ref_.value;
+    return this.group_?.first ?? this;
+  }
+
+  @computed
+  public get callGroup(): CallGroup | undefined {
+    return this.isRepeated ? this.group_ : undefined;
   }
 
   public get all(): Iterable<CallBlock> {
-    return this.ref_.all;
+    return this.group_ ?? [this];
   }
 
   @computed
   public get isRepeated() {
-    return this.ref_.size > 1;
+    return (this.group_?.length ?? 0) > 1;
   }
 
   @computed
   public get isPreset() {
     return EnumValues(CallType).includes(this.text);
+  }
+
+  @action
+  public setGroup(group: CallGroup | undefined) {
+    this.group_ = group;
   }
 
   //#region Commands
@@ -192,10 +291,6 @@ export class CallBlock extends CallBlockBase implements IWithSpacing {
       notifyParent,
     );
   }
-
-  public mergeCmd(other: CallBlock): MergeUFCommand<CallBlock> {
-    return new MergeUFCommand<CallBlock>(this.ref_, other.ref_);
-  }
   //#endregion Commands
 
   //#region ISerializable
@@ -205,7 +300,7 @@ export class CallBlock extends CallBlockBase implements IWithSpacing {
         ...super.serialize(),
         start: this.start.serialize(),
         end: this.end.serialize(),
-        ref: this.ref_.serialize(),
+        ref: this.group_?.serialize(),
         text: this.selfText,
       },
       true,
@@ -216,7 +311,14 @@ export class CallBlock extends CallBlockBase implements IWithSpacing {
     super.deserialize(data);
     this.start = Timing.Deserialize(data.start);
     this.end = Timing.Deserialize(data.end);
-    this.ref_.deserialize(data.ref, data.context);
+    if (data.ref) {
+      this.group_ = data.context.getOrCreate(data.ref, () => {
+        const gr = new CallGroup();
+        gr.deserialize(data.ref!);
+        return gr;
+      });
+      this.group_.push(this);
+    }
     this.text_ = data.text;
   }
   //#endregion ISerializable
@@ -226,11 +328,18 @@ export class SingAlongBlock extends CallBlockBase implements IWithSpacing {
   public override readonly type: BlockType = BlockType.SingAlong;
   public override readonly resizable = false;
 
-  protected readonly ref_ = new MRef<LyricsBlock, SingAlongBlock>(this, () => {
-    return this.parent
-      ? new RemoveBlocksCommand(this.parent, this)
+  protected static readonly REMOVE_LYRICS_REF_FN: RemoveRefFn<
+    LyricsBlock,
+    SingAlongBlock
+  > = (r) =>
+    r.container.parent
+      ? new RemoveBlocksCommand(r.container.parent, r.container)
       : Command.Noop();
-  });
+
+  protected readonly ref_ = new MRef<LyricsBlock, SingAlongBlock>(
+    this,
+    SingAlongBlock.REMOVE_LYRICS_REF_FN,
+  );
 
   public constructor() {
     super();

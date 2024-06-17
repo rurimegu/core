@@ -65,7 +65,7 @@ export class CommentBlock
   //#endregion Commands
 
   //#region ISerializable
-  public serialize(): CommentBlockData {
+  public override serialize(): CommentBlockData {
     return {
       ...super.serialize(),
       text: this.text,
@@ -74,7 +74,7 @@ export class CommentBlock
     };
   }
 
-  public deserialize(data: CommentBlockData & BlockDataHelpers) {
+  public override deserialize(data: CommentBlockData & BlockDataHelpers) {
     super.deserialize(data);
     this.text = data.text;
     this.start = Timing.Deserialize(data.start);

@@ -12,12 +12,10 @@ import {
   IProviderOrValue,
   IWithSpacing,
   NoopFn,
-  IWithId,
   UndoFunc,
 } from '../utils/types';
 import { TagsStore, LyricsTag, TagsRef } from '../store/tags';
-import { AnnotationBlock, LyricsBlock } from '../store';
-import { UFRef } from '../utils';
+import { AnnotationBlock, CallBlock, CallGroup, LyricsBlock } from '../store';
 import { refManager } from '../utils/ref';
 
 //#region Command Base
@@ -51,11 +49,11 @@ export class ReverseCommand extends Command {
     super();
   }
 
-  public execute(): void {
+  public override execute(): void {
     this.command.undo();
   }
 
-  public undo(): void {
+  public override undo(): void {
     this.command.execute();
   }
 
@@ -91,13 +89,13 @@ export class CommandSet extends Command {
     this.commands.length = 0;
   }
 
-  public execute(): void {
+  public override execute(): void {
     for (const command of this.commands) {
       command.execute();
     }
   }
 
-  public undo(): void {
+  public override undo(): void {
     for (const command of this.commands.slice().reverse()) {
       command.undo();
     }
@@ -125,11 +123,11 @@ export class DynamicCommand extends Command {
     super();
   }
 
-  public execute(): void {
+  public override execute(): void {
     this.undoFn = this.executeFn();
   }
 
-  public undo(): void {
+  public override undo(): void {
     this.undoFn();
     this.undoFn = NoopFn;
   }
@@ -150,7 +148,7 @@ export class RemoveBlocksCommand<T extends BlockBase> extends Command {
     super();
   }
 
-  public execute(): void {
+  public override execute(): void {
     this.idx =
       typeof this.item === 'number'
         ? this.item
@@ -162,7 +160,7 @@ export class RemoveBlocksCommand<T extends BlockBase> extends Command {
     this.cs.execute();
   }
 
-  public undo(): void {
+  public override undo(): void {
     if (this.idx < 0) return;
     this.cs.undo();
     this.parent.splice(this.idx, 0, ...this.prevBlocks);
@@ -178,12 +176,12 @@ export class AddBlocksCommand<T extends BlockBase> extends Command {
     super();
   }
 
-  public execute(): void {
+  public override execute(): void {
     const blocks = Array.isArray(this.blocks) ? this.blocks : [this.blocks];
     this.parent.splice(this.idx, 0, ...blocks);
   }
 
-  public undo(): void {
+  public override undo(): void {
     const length = Array.isArray(this.blocks) ? this.blocks.length : 1;
     this.parent.splice(this.idx, length);
   }
@@ -202,7 +200,7 @@ export class MergeBlocksCommand<
     super();
   }
 
-  public execute(): void {
+  public override execute(): void {
     const parent = GetValue(this.parent);
     const newBlock = parent.children[this.blockIdxStart].newCopy();
     for (
@@ -215,7 +213,7 @@ export class MergeBlocksCommand<
     this.prevBlocks = parent.splice(this.blockIdxStart, this.count, newBlock);
   }
 
-  public undo(): void {
+  public override undo(): void {
     GetValue(this.parent).splice(this.blockIdxStart, 1, ...this.prevBlocks);
   }
 }
@@ -229,13 +227,13 @@ export class SetTextCommand extends Command {
     super();
   }
 
-  public execute(): void {
+  public override execute(): void {
     const block = GetValue(this.block);
     this.prevText = block.text;
     block.text = this.text;
   }
 
-  public undo(): void {
+  public override undo(): void {
     const block = GetValue(this.block);
     block.text = this.prevText;
   }
@@ -262,12 +260,12 @@ export class SetBlockStartCommand extends Command {
     super();
   }
 
-  public execute(): void {
+  public override execute(): void {
     this.prevStart = GetValue(this.block).start;
     GetValue(this.block).start = this.start;
   }
 
-  public undo(): void {
+  public override undo(): void {
     GetValue(this.block).start = this.prevStart;
   }
 }
@@ -282,12 +280,12 @@ export class SetBlockEndCommand extends Command {
     super();
   }
 
-  public execute(): void {
+  public override execute(): void {
     this.prevEnd = GetValue(this.block).end;
     GetValue(this.block).end = this.end;
   }
 
-  public undo(): void {
+  public override undo(): void {
     GetValue(this.block).end = this.prevEnd;
   }
 }
@@ -315,13 +313,13 @@ export class ReplaceChildrenCommand<T extends BlockBase> extends Command {
     }
   }
 
-  public execute(): void {
+  public override execute(): void {
     this.prevChildren = this.parent.children.slice();
     this.resizeCmd.execute();
     this.parent.replace(this.children);
   }
 
-  public undo(): void {
+  public override undo(): void {
     this.parent.replace(this.prevChildren);
     this.resizeCmd.undo();
   }
@@ -337,13 +335,13 @@ export class SetNewlineCommand extends Command {
     super();
   }
 
-  public execute(): void {
+  public override execute(): void {
     const block = GetValue(this.block);
     this.prevNewline = block.newline;
     block.newline = this.newline;
   }
 
-  public undo(): void {
+  public override undo(): void {
     GetValue(this.block).newline = this.prevNewline;
   }
 }
@@ -358,24 +356,45 @@ export class SetSpaceCommand extends Command {
     super();
   }
 
-  public execute(): void {
+  public override execute(): void {
     const block = GetValue(this.block);
     this.prevSpace = block.space;
     block.space = this.space;
   }
 
-  public undo(): void {
+  public override undo(): void {
     GetValue(this.block).space = this.prevSpace;
   }
 }
 //#endregion Block Commands
 
 //#region Call Commands
-export class MergeUFCommand<T extends IWithId> extends DynamicCommand {
-  protected undoFunc: UndoFunc = NoopFn;
+/** Puts all blocks into a new call group. Will remove them from existing call group if any. */
+export class GroupCallsCommand extends Command {
+  protected prevGroups: (CallGroup | undefined)[] = [];
+  protected readonly blocks: CallBlock[];
+  protected readonly group = new CallGroup();
 
-  public constructor(lhs: UFRef<T>, rhs: UFRef<T>) {
-    super(() => lhs.merge(rhs));
+  public constructor(...blocks: CallBlock[]) {
+    super();
+    this.blocks = blocks;
+  }
+
+  public override execute(): void {
+    this.prevGroups = this.blocks.map((b) => b.callGroup);
+    this.blocks.forEach((b) => {
+      b.callGroup?.remove(b);
+      b.setGroup(this.group);
+    });
+    this.group.push(...this.blocks);
+  }
+
+  public override undo(): void {
+    this.group.remove(...this.blocks);
+    this.blocks.forEach((b, i) => {
+      b.setGroup(this.prevGroups[i]);
+      this.prevGroups[i]?.push(b);
+    });
   }
 }
 //#endregion Call Commands
@@ -391,12 +410,12 @@ export class SetTagsStoreCommand extends Command {
     super();
   }
 
-  public execute(): void {
+  public override execute(): void {
     this.prevTags = [...this.store.tagList];
     this.store.replaceTags(this.tags);
   }
 
-  public undo(): void {
+  public override undo(): void {
     this.store.replaceTags(this.prevTags);
   }
 }
@@ -411,21 +430,21 @@ export class AddTagsCommand extends Command {
     this.tags = tags;
   }
 
-  public execute(): void {
+  public override execute(): void {
     this.tags.forEach((tag) => this.target.addTag(tag));
   }
 
-  public undo(): void {
+  public override undo(): void {
     this.tags.forEach((tag) => this.target.removeTag(tag));
   }
 }
 
 export class RemoveTagsCommand extends AddTagsCommand {
-  public execute(): void {
+  public override execute(): void {
     super.undo();
   }
 
-  public undo(): void {
+  public override undo(): void {
     super.execute();
   }
 }

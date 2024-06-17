@@ -1,9 +1,3 @@
-import { observable, makeObservable, action, computed } from 'mobx';
-import { IWithId, NoopFn, RemoveUndefined, UndoFunc } from './types';
-import { DataError, InvalidStateError, ValueError } from './error';
-import { ISerializable } from './io';
-import { persistStore } from '../store';
-
 /**
  * A double-ended queue that auto resizes.
  */
@@ -176,6 +170,15 @@ export class FutureMap {
     return this.map.get(key);
   }
 
+  public getOrCreate<T>(key: string, creator: () => T): T {
+    let value = this.map.get(key);
+    if (value === undefined) {
+      value = creator();
+      this.set(key, value);
+    }
+    return value;
+  }
+
   public runWhenReady(key: string, executor: FutureExecutor) {
     const value = this.map.get(key);
     if (value !== undefined) {
@@ -193,144 +196,4 @@ export class FutureMap {
   public get unresolvedCount() {
     return this.futureMap.size;
   }
-}
-
-export interface UFRefData {
-  id: string;
-  ref?: string;
-  value: string;
-  size: number;
-}
-
-/**
- * A reference maintained by union find.
- */
-export class UFRef<T extends IWithId> implements IWithId, ISerializable {
-  @observable
-  protected id_: string;
-
-  @observable
-  protected ref_?: UFRef<T>;
-
-  protected value_: T;
-
-  @observable
-  protected size_ = 1;
-
-  @observable
-  protected readonly children_ = observable.set<UFRef<T>>([], {
-    deep: false,
-  });
-
-  constructor(value: T) {
-    if (value instanceof UFRef) {
-      throw new ValueError('Cannot create UFRef to another UFRef');
-    }
-    this.id_ = `uf-${persistStore.nextId}`;
-    this.value_ = value;
-    makeObservable(this);
-  }
-
-  @computed
-  public get id() {
-    return this.id_;
-  }
-
-  @computed
-  public get value(): T {
-    return this._root.value_;
-  }
-
-  @computed
-  protected get _root(): UFRef<T> {
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    let node: UFRef<T> = this;
-    while (node.ref_ !== undefined) {
-      node = node.ref_;
-    }
-    return node;
-  }
-
-  @computed
-  public get size() {
-    return this._root.size_;
-  }
-
-  protected *_getAllValues(): Iterable<T> {
-    if (this.value_) yield this.value_;
-    for (const child of this.children_) {
-      for (const item of child._getAllValues()) {
-        yield item;
-      }
-    }
-  }
-
-  public get all(): Iterable<T> {
-    return this._root._getAllValues();
-  }
-
-  protected _addChild(child: UFRef<T>) {
-    child.ref_ = this;
-    this.children_.add(child);
-    this.size_ += child.size_;
-  }
-
-  @action
-  public merge(rhs: UFRef<T>): UndoFunc {
-    let root1 = this._root;
-    let root2 = rhs._root;
-    if (root1 === root2) return NoopFn;
-    if (root1.size_ < root2.size_) {
-      [root1, root2] = [root2, root1];
-    }
-    root1._addChild(root2);
-    return () => root2.unmerge();
-  }
-
-  @action
-  public unmerge() {
-    if (this.ref_ === undefined) {
-      throw new InvalidStateError('Cannot unmerge root of union find');
-    }
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    let node: UFRef<T> = this;
-    while (node.ref_ instanceof UFRef) {
-      const parent = node.ref_;
-      parent.size_ -= this.size_;
-      parent.children_.delete(node);
-      node = parent;
-    }
-    this.ref_ = undefined;
-  }
-
-  //#region ISerializable
-  serialize(): UFRefData {
-    return RemoveUndefined({
-      id: this.id,
-      ref: this.ref_?.id,
-      value: this.value_.id,
-      size: this.size_,
-    });
-  }
-
-  deserialize(data: UFRefData, future: FutureMap) {
-    this.size_ = data.size ?? 1;
-    if (data.ref) {
-      future.runWhenReady(data.ref, (value: UFRef<T>) => {
-        this.ref_ = value;
-        this.ref_.children_.add(this);
-      });
-    } else {
-      this.ref_ = undefined;
-    }
-    future.runWhenReady(data.value, (value: T) => {
-      this.value_ = value;
-    });
-    if (!data.id) {
-      throw new DataError('UFRefData.id is required');
-    }
-    this.id_ = data.id;
-    future.set(data.id, this);
-  }
-  //#endregion ISerializable
 }

@@ -102,7 +102,7 @@ export class LyricsTrack
   }
 
   @override
-  public get visibleSpaces() {
+  public override get visibleSpaces() {
     return this.visibleBlocks.filter((block) => block.newline || block.space);
   }
 }
@@ -117,7 +117,7 @@ export class CallsTrack extends TrackBlockBase<CallBlockBase> {
   }
 
   @override
-  public get visibleSpaces() {
+  public override get visibleSpaces() {
     return this.visibleBlocks.filter((block) => {
       if (block instanceof CallBlock || block instanceof SingAlongBlock) {
         return block.newline || block.space;

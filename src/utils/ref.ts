@@ -51,15 +51,18 @@ export class RefManager {
 
 export const refManager = new RefManager();
 
-type RemoveRefFn<T> = (value: T) => Command;
+export type RemoveRefFn<T extends IWithId, U> = (value: MRef<T, U>) => Command;
+export function NoopRemoveRef(): Command {
+  return Command.Noop();
+}
 
 export class MRef<T extends IWithId, U> implements IClonable<MRef<T, U>> {
   @observable
   protected value?: T;
 
   public constructor(
-    public readonly parent: U,
-    public readonly removeRefFn: RemoveRefFn<MRef<T, U>>,
+    public readonly container: U,
+    public readonly removeRefFn: RemoveRefFn<T, U>,
     value?: T,
   ) {
     this.set(value);
@@ -86,7 +89,7 @@ export class MRef<T extends IWithId, U> implements IClonable<MRef<T, U>> {
 
   //#region IClonable
   public clone(): MRef<T, U> {
-    return new MRef<T, U>(this.parent, this.removeRefFn, this.value);
+    return new MRef<T, U>(this.container, this.removeRefFn, this.value);
   }
   //#endregion IClonable
 }

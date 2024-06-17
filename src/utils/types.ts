@@ -54,25 +54,10 @@ export function RemoveUndefined<T extends object>(
 export function EnumValues(obj: any): string[] {
   return Object.keys(obj).map((key) => obj[key]);
 }
+
 export type SimpleFunc = () => void;
-export type UndoFunc = SimpleFunc;
+export type UndoFunc = () => void;
 
 export type Handler<T> = (data: T) => void;
 
 export type Predicate<T> = (value: T) => boolean;
-
-export function OptionalAssignRecursive(
-  target?: Record<string, any>,
-  source?: Record<string, any>,
-) {
-  if (source === undefined || target === undefined) return;
-  for (const key in source) {
-    if (source[key] === undefined) continue;
-    if (typeof source[key] === 'object') {
-      if (target[key] === undefined) target[key] = {};
-      OptionalAssignRecursive(target[key], source[key]);
-    } else {
-      target[key] = source[key];
-    }
-  }
-}
