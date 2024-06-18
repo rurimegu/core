@@ -383,17 +383,14 @@ export class GroupCallsCommand extends Command {
   public override execute(): void {
     this.prevGroups = this.blocks.map((b) => b.callGroup);
     this.blocks.forEach((b) => {
-      b.callGroup?.remove(b);
       b.setGroup(this.group);
     });
     this.group.push(...this.blocks);
   }
 
   public override undo(): void {
-    this.group.remove(...this.blocks);
     this.blocks.forEach((b, i) => {
       b.setGroup(this.prevGroups[i]);
-      this.prevGroups[i]?.push(b);
     });
   }
 }
