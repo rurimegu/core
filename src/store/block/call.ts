@@ -40,7 +40,8 @@ export interface CallBlockBaseData extends BlockData {
 export interface CallBlockData extends CallBlockBaseData {
   start: string;
   end: string;
-  ref?: string;
+  ref?: any; // TODO: remove
+  group?: string;
   text: string;
 }
 
@@ -223,7 +224,7 @@ export class CallBlock extends CallBlockBase implements IWithSpacing {
         ...super.serialize(),
         start: this.start.serialize(),
         end: this.end.serialize(),
-        ref: this.group_?.serialize(),
+        group: this.group_?.serialize(),
         text: this.selfText,
       },
       true,
@@ -234,13 +235,32 @@ export class CallBlock extends CallBlockBase implements IWithSpacing {
     super.deserialize(data);
     this.start = Timing.Deserialize(data.start);
     this.end = Timing.Deserialize(data.end);
-    if (data.ref) {
-      this.group_ = data.context.getOrCreate(data.ref, () => {
+    if (typeof data.ref === 'string') data.group = data.ref;
+    if (data.group) {
+      this.group_ = data.context.getOrCreate(data.group, () => {
         const gr = new CallGroup();
-        gr.deserialize(data.ref!);
+        gr.deserialize(data.group!);
         return gr;
       });
       this.group_.push(this);
+    } else if (data.ref) {
+      // Backfill: union find
+      const findRoot = (d: any) => {
+        const { id, ref } = d;
+        if (ref) {
+          data.context.set(id, d);
+          data.context.runWhenReady(ref, findRoot);
+          return;
+        }
+        this.group_ = data.context.getOrCreate(id, () => {
+          const gr = new CallGroup();
+          gr.deserialize(id);
+          return gr;
+        });
+        this.group_.push(this);
+        return;
+      };
+      findRoot(data.ref);
     }
     this.text_ = data.text;
   }

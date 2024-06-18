@@ -125,7 +125,7 @@ export class RefGroup<T extends IWithId> implements ISerializable {
   }
 
   public constructor() {
-    this.id = `cg-${persistStore.nextId}`;
+    this.id = `rg-${persistStore.nextId}`;
     makeObservable(this);
   }
 
