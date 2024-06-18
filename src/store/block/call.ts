@@ -17,14 +17,11 @@ import {
   IWithSpacing,
   Typeof,
   UniqueBy,
-  ISerializable,
-  ValueError,
 } from '../../utils';
-import { MRef, RemoveRefFn } from '../../utils/ref';
+import { MRef, RefGroup, RemoveRefFn } from '../../utils/ref';
 import { LyricsBlock } from './lyrics';
 import { CallsTrack } from './track';
-import { RemoveBlocksCommand, Command, DynamicCommand } from '../../commands';
-import { persistStore } from '../persist';
+import { RemoveBlocksCommand, Command } from '../../commands';
 
 export enum CallType {
   Hi = 'Hi',
@@ -52,92 +49,18 @@ export interface SingAlongBlockData extends CallBlockBaseData {
   text: string;
 }
 
-export class CallGroup implements ISerializable {
-  @observable
-  public id: string;
-
-  @observable
-  protected readonly arr = observable.array<MRef<CallBlock, CallGroup>>([], {
-    deep: false,
-  });
-
-  protected static readonly REMOVE_REF_FN: RemoveRefFn<CallBlock, CallGroup> = (
-    r,
-  ) => {
-    return new DynamicCommand(() => {
-      const idx = r.container.arr.indexOf(r);
-      r.container.arr.splice(idx, 1);
-      return () => {
-        r.container.arr.splice(idx, 0, r);
-      };
-    });
-  };
-
-  protected createRef(item: CallBlock): MRef<CallBlock, CallGroup> {
-    const ref = new MRef(this, CallGroup.REMOVE_REF_FN);
-    ref.set(item);
-    return ref;
-  }
-
+export class CallGroup extends RefGroup<CallBlock> {
   public constructor() {
-    this.id = `cg-${persistStore.nextId}`;
+    super();
     makeObservable(this);
   }
 
-  @action
-  public push(...items: CallBlock[]): number {
-    const ret = this.arr.push(...items.map((i) => this.createRef(i)));
-    this.arr.sort((a, b) => a.get()!.start.compare(b.get()!.start));
+  @override
+  public override push(...items: CallBlock[]): number {
+    const ret = super.push(...items);
+    this.arr.sort((a, b) => a.value!.start.compare(b.value!.start));
     return ret;
   }
-
-  @action
-  public remove(...items: CallBlock[]): void {
-    items.forEach((item) => {
-      const idx = this.arr.findIndex((r) => r.get() === item);
-      if (idx < 0)
-        throw new ValueError(
-          `Cannot remove ${item.id} from CallGroup ${this.id} : not found`,
-        );
-      this.arr.splice(idx, 1);
-    });
-  }
-
-  @action
-  public replace(...items: CallBlock[]): void {
-    this.arr.replace(items.map((i) => this.createRef(i)));
-  }
-
-  *[Symbol.iterator](): IterableIterator<CallBlock> {
-    for (const ref of this.arr) {
-      yield ref.get()!;
-    }
-  }
-
-  @computed
-  public get first() {
-    return this.arr[0]?.get();
-  }
-
-  @computed
-  public get last() {
-    return this.arr[this.arr.length - 1]?.get();
-  }
-
-  @computed
-  public get length() {
-    return this.arr.length;
-  }
-
-  //#region ISerializable
-  public serialize(): string {
-    return this.id;
-  }
-
-  public deserialize(data: string): void {
-    this.id = data;
-  }
-  //#endregion ISerializable
 }
 
 export abstract class CallBlockBase
@@ -349,7 +272,7 @@ export class SingAlongBlock extends CallBlockBase implements IWithSpacing {
 
   @computed
   public get lyricsBlock(): LyricsBlock | undefined {
-    return this.ref_.get();
+    return this.ref_.value;
   }
 
   public set lyricsBlock(block: LyricsBlock | undefined) {
