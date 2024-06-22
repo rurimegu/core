@@ -178,13 +178,18 @@ export class CallBlock extends CallBlockBase implements IWithSpacing {
     return this.isRepeated ? this.group_ : undefined;
   }
 
+  @computed
+  public get repeatCount() {
+    return this.group_?.length ?? 1;
+  }
+
   public get all(): Iterable<CallBlock> {
     return this.group_ ?? [this];
   }
 
   @computed
   public get isRepeated() {
-    return (this.group_?.length ?? 0) > 1;
+    return this.repeatCount > 1;
   }
 
   @computed

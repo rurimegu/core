@@ -152,10 +152,8 @@ export class RefGroup<T extends IWithId> implements ISerializable {
     this.arr.replace(items.map((i) => this.createRef(i)));
   }
 
-  *[Symbol.iterator](): IterableIterator<T> {
-    for (const ref of this.arr) {
-      yield ref.value!;
-    }
+  [Symbol.iterator](): IterableIterator<T> {
+    return this.arr.map((r) => r.value!)[Symbol.iterator]();
   }
 
   @computed
