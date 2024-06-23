@@ -1,6 +1,6 @@
 import { action, makeObservable, override } from 'mobx';
 import { BlockType, ParentBlockBase, ParentBlockData } from './base';
-import { TrackBlock } from './track';
+import { LyricsTrack, TrackBlock } from './track';
 import { Timing } from '../range';
 
 export type TracksData = ParentBlockData;
@@ -11,6 +11,7 @@ export class Tracks extends ParentBlockBase<TrackBlock> {
   public constructor() {
     super();
     this.id_ = 'main-tracks';
+    this.clear();
     makeObservable(this);
   }
 
@@ -27,5 +28,6 @@ export class Tracks extends ParentBlockBase<TrackBlock> {
   @action
   public clear() {
     this.children_.replace([]);
+    this.children_.push(new LyricsTrack());
   }
 }

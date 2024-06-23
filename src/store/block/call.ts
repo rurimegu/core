@@ -173,9 +173,12 @@ export class CallBlock extends CallBlockBase implements IWithSpacing {
     return this.group_?.first ?? this;
   }
 
+  /** Gets the call group of a call block.
+   *
+   * Might be undefined or a group of 1 call block when the block is not repeated. */
   @computed
   public get callGroup(): CallGroup | undefined {
-    return this.isRepeated ? this.group_ : undefined;
+    return this.group_;
   }
 
   @computed
@@ -230,7 +233,7 @@ export class CallBlock extends CallBlockBase implements IWithSpacing {
         ...super.serialize(),
         start: this.start.serialize(),
         end: this.end.serialize(),
-        group: this.group_?.serialize(),
+        group: this.isRepeated ? this.group_!.serialize() : undefined,
         text: this.selfText,
       },
       true,
