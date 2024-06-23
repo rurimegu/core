@@ -90,8 +90,15 @@ export class CommandSet extends Command {
   }
 
   public override execute(): void {
-    for (const command of this.commands) {
-      command.execute();
+    for (let i = 0; i < this.commands.length; i++) {
+      try {
+        this.commands[i].execute();
+      } catch (e) {
+        for (let j = i - 1; j >= 0; j--) {
+          this.commands[j].undo();
+        }
+        throw e;
+      }
     }
   }
 
