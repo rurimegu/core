@@ -380,9 +380,11 @@ export class SetSpaceCommand extends Command {
 export class GroupCallsCommand extends Command {
   protected prevGroups: (CallGroup | undefined)[] = [];
   protected readonly blocks: CallBlock[];
-  protected readonly group = new CallGroup();
 
-  public constructor(...blocks: CallBlock[]) {
+  public constructor(
+    public readonly group: CallGroup | undefined,
+    ...blocks: CallBlock[]
+  ) {
     super();
     this.blocks = blocks;
   }
@@ -392,13 +394,19 @@ export class GroupCallsCommand extends Command {
     this.blocks.forEach((b) => {
       b.setGroup(this.group);
     });
-    this.group.push(...this.blocks);
+    this.group?.push(...this.blocks);
   }
 
   public override undo(): void {
     this.blocks.forEach((b, i) => {
       b.setGroup(this.prevGroups[i]);
     });
+  }
+}
+
+export class UngroupCallsCommand extends GroupCallsCommand {
+  public constructor(...blocks: CallBlock[]) {
+    super(undefined, ...blocks);
   }
 }
 //#endregion Call Commands
