@@ -4,6 +4,7 @@ import { Command, CommandSet, DynamicCommand } from '../commands';
 import { ISerializable } from './io';
 import { persistStore } from '../store';
 import { ValueError } from './error';
+import { FutureMap } from './ds';
 
 export class RefManager {
   protected readonly refs = new Map<string, MRef<any, any>[]>();
@@ -97,10 +98,7 @@ export class MRef<T extends IWithId, U> implements IClonable<MRef<T, U>> {
   //#endregion IClonable
 }
 
-export class RefGroup<T extends IWithId> implements ISerializable {
-  @observable
-  public id: string;
-
+class RefGroup<T extends IWithId> {
   @observable
   protected readonly arr = observable.array<MRef<T, this>>([], {
     deep: false,
@@ -125,14 +123,12 @@ export class RefGroup<T extends IWithId> implements ISerializable {
   }
 
   public constructor() {
-    this.id = `rg-${persistStore.nextId}`;
     makeObservable(this);
   }
 
   @action
   public push(...items: T[]): number {
-    const ret = this.arr.push(...items.map((i) => this.createRef(i)));
-    return ret;
+    return this.arr.push(...items.map((i) => this.createRef(i)));
   }
 
   @action
@@ -141,7 +137,7 @@ export class RefGroup<T extends IWithId> implements ISerializable {
       const idx = this.arr.findIndex((r) => r.value === item);
       if (idx < 0)
         throw new ValueError(
-          `Cannot remove ${item.id} from RefGroup ${this.id} : not found`,
+          `Cannot remove ${item.id} from RefGroup: not found`,
         );
       this.arr.splice(idx, 1);
     });
@@ -154,6 +150,11 @@ export class RefGroup<T extends IWithId> implements ISerializable {
 
   [Symbol.iterator](): IterableIterator<T> {
     return this.arr.map((r) => r.value!)[Symbol.iterator]();
+  }
+
+  @computed
+  public get values(): T[] {
+    return this.arr.map((r) => r.value!);
   }
 
   @computed
@@ -170,6 +171,21 @@ export class RefGroup<T extends IWithId> implements ISerializable {
   public get length() {
     return this.arr.length;
   }
+}
+
+/** Ref group shared by multiple objects for grouping objects. */
+export class SharedRefGroup<T extends IWithId>
+  extends RefGroup<T>
+  implements ISerializable, IWithId
+{
+  @observable
+  public id: string;
+
+  public constructor() {
+    super();
+    this.id = `rg-${persistStore.nextId}`;
+    makeObservable(this);
+  }
 
   //#region ISerializable
   public serialize(): string {
@@ -178,6 +194,31 @@ export class RefGroup<T extends IWithId> implements ISerializable {
 
   public deserialize(data: string): void {
     this.id = data;
+  }
+  //#endregion ISerializable
+}
+
+/** One-to-many ref group as a unique internal state of one object. */
+export class UniqueRefGroup<T extends IWithId>
+  extends RefGroup<T>
+  implements ISerializable
+{
+  public clear(): void {
+    this.arr.forEach((r) => r.set(undefined));
+    this.arr.clear();
+  }
+
+  //#region ISerializable
+  public serialize(): string[] {
+    return this.arr.map((r) => r.value?.id).filter((id) => id) as string[];
+  }
+
+  public deserialize(data: string[], context: FutureMap): void {
+    void Promise.all(data.map((id) => context.getAsync(id))).then(
+      (items: T[]) => {
+        this.replace(...items);
+      },
+    );
   }
   //#endregion ISerializable
 }

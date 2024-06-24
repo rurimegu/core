@@ -193,6 +193,12 @@ export class FutureMap {
     }
   }
 
+  public getAsync(key: string) {
+    return new Promise<any>((resolve) => {
+      this.runWhenReady(key, resolve);
+    });
+  }
+
   public get unresolvedCount() {
     return this.futureMap.size;
   }

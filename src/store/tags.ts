@@ -1,16 +1,16 @@
 import {
   action,
-  comparer,
   computed,
   makeObservable,
   observable,
   runInAction,
 } from 'mobx';
-import { IDeserializable, ISerializable } from '../utils/io';
-import _ from 'lodash';
+import { ISerializable } from '../utils/io';
 import { IClonable } from '../utils/types';
 import { Color } from '../utils/algo';
-import { RangeArray } from '../utils';
+import { FutureMap, RangeArray } from '../utils';
+import { UniqueRefGroup } from '../utils/ref';
+import { persistStore } from './persist';
 
 interface LyricsTagData {
   id: string;
@@ -24,15 +24,16 @@ export interface LyricsTagsData {
 
 export class LyricsTag implements ISerializable, IClonable<LyricsTag> {
   @observable
+  public id: string;
+
+  @observable
   public name = 'New tag';
 
   @observable
   public color = Color.WHITE;
 
-  public constructor(public readonly id: string = '') {
-    if (!id) {
-      this.id = _.uniqueId('tag-');
-    }
+  public constructor() {
+    this.id = `tag-${persistStore.nextId}`;
     makeObservable(this);
   }
 
@@ -55,6 +56,7 @@ export class LyricsTag implements ISerializable, IClonable<LyricsTag> {
 
   @action
   public deserialize(data: LyricsTagData): void {
+    this.id = data.id;
     this.name = data.name;
     this.color = Color.Deserialize(data.color);
   }
@@ -62,9 +64,8 @@ export class LyricsTag implements ISerializable, IClonable<LyricsTag> {
 
   //#region IClonable
   public clone(): LyricsTag {
-    const tag = new LyricsTag(this.id);
-    tag.name = this.name;
-    tag.color = this.color;
+    const tag = new LyricsTag();
+    tag.deserialize(this.serialize());
     return tag;
   }
   //#endregion
@@ -72,15 +73,7 @@ export class LyricsTag implements ISerializable, IClonable<LyricsTag> {
 
 export class TagsStore implements ISerializable {
   @observable
-  protected tags_ = observable.map<string, LyricsTag>(
-    {},
-    {
-      deep: false,
-    },
-  );
-
-  @observable
-  protected tagsOrder_ = observable.array<string>([], {
+  protected tags_ = observable.array<LyricsTag>([], {
     deep: false,
   });
 
@@ -111,130 +104,86 @@ export class TagsStore implements ISerializable {
     });
   }
 
-  public createRef(): TagsRef {
-    return new TagsRef(this);
-  }
-
   @action
   public addTag(tag: LyricsTag): void {
-    this.tags_.set(tag.id, tag);
-    this.tagsOrder_.push(tag.id);
+    if (this.hasTag(tag.id)) return;
+    this.tags_.push(tag);
   }
 
   @action
   public removeTag(id: string): void {
-    this.tagsOrder_.remove(id);
-    this.tags_.delete(id);
+    const tag = this.getTag(id);
+    if (!tag) return;
+    this.tags_.remove(tag);
   }
 
+  /**
+   * Replaces all tags with the given list.
+   * @param tags The new list of tags.
+   * @returns The list of tags that were removed.
+   */
   @action
-  public replaceTags(tags: LyricsTag[]): void {
-    this.clear();
-    for (const tag of tags) {
-      this.addTag(tag);
-    }
+  public replaceTags(tags: LyricsTag[]): LyricsTag[] {
+    const toRemove = this.tags_.filter((tag) =>
+      tags.every((t) => t.id !== tag.id),
+    );
+    const newTags = tags.map((t) => {
+      const existing = this.getTag(t.id);
+      if (existing) {
+        existing.deserialize(t.serialize());
+        return existing;
+      }
+      return t;
+    });
+    this.tags_.replace(newTags);
+    return toRemove;
   }
 
   @action
   public clear(): void {
     this.tags_.clear();
-    this.tagsOrder_.clear();
   }
 
   public getTag(id: string): LyricsTag | undefined {
-    return this.tags_.get(id);
+    return this.tags_.find((tag) => tag.id === id);
   }
 
   public hasTag(id: string): boolean {
-    return this.tags_.has(id);
+    return this.getTag(id) !== undefined;
   }
 
-  @computed({ equals: comparer.shallow })
-  public get tagIds(): string[] {
-    return this.tagsOrder_;
-  }
-
-  @computed({ equals: comparer.shallow })
+  @computed
   public get tagList(): LyricsTag[] {
-    return this.tagsOrder_.map((id) => this.tags_.get(id)!);
+    return this.tags_;
+  }
+
+  @computed
+  public get length(): number {
+    return this.tags_.length;
   }
 
   //#region ISerializable
   public serialize(): LyricsTagsData {
     return {
-      tags: this.tagsOrder_.map((id) => this.tags_.get(id)!.serialize()),
+      tags: this.tags_.map((tag) => tag.serialize()),
     };
   }
 
   @action
-  public deserialize(data: LyricsTagsData): void {
-    this.tags_.clear();
-    this.tagsOrder_.clear();
+  public deserialize(data: LyricsTagsData, context: FutureMap): void {
+    this.clear();
     for (const tagData of data.tags) {
-      const tag = new LyricsTag(tagData.id);
+      const tag = new LyricsTag();
       tag.deserialize(tagData);
+      context.set(tag.id, tag);
       this.addTag(tag);
     }
   }
   //#endregion ISerializable
 }
 
+export class TagsGroup extends UniqueRefGroup<LyricsTag> {}
+
 export interface IWithTags {
-  tags: TagsRef;
-}
-
-export class TagsRef implements ISerializable, IDeserializable {
-  @observable protected _tags = observable.array<string>([], { deep: false });
-
-  public constructor(public readonly store: TagsStore) {
-    makeObservable(this);
-  }
-
-  @computed({ equals: comparer.shallow })
-  public get tags(): LyricsTag[] {
-    const tags = this._tags.map((id) => this.store.getTag(id));
-    for (let i = tags.length - 1; i >= 0; i--) {
-      if (!tags[i]) this._tags.splice(i, 1);
-    }
-    return tags.filter((t) => t) as LyricsTag[];
-  }
-
-  @computed({ equals: comparer.shallow })
-  public get tagIds(): string[] {
-    return this._tags;
-  }
-
-  @computed
-  public get length(): number {
-    return this._tags.length;
-  }
-
-  @action
-  public removeTag(id: string): void {
-    this._tags.remove(id);
-  }
-
-  @action
-  public addTag(id: string): void {
-    if (this._tags.includes(id)) return;
-    const tag = this.store.getTag(id);
-    if (!tag) return;
-    this._tags.push(id);
-  }
-
-  @action
-  public clear(): void {
-    this._tags.clear();
-  }
-
-  //#region ISerializable
-  public serialize(): string[] {
-    return this._tags;
-  }
-
-  @action
-  public deserialize(data: string[]) {
-    this._tags.replace(data);
-  }
-  //#endregion ISerializable
+  tags: TagsGroup;
 }

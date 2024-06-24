@@ -18,7 +18,7 @@ import {
   Typeof,
   UniqueBy,
 } from '../../utils';
-import { MRef, RefGroup, RemoveRefFn } from '../../utils/ref';
+import { MRef, RemoveRefFn, SharedRefGroup } from '../../utils/ref';
 import { LyricsBlock } from './lyrics';
 import { CallsTrack } from './track';
 import { RemoveBlocksCommand, Command } from '../../commands';
@@ -49,7 +49,7 @@ export interface SingAlongBlockData extends CallBlockBaseData {
   text: string;
 }
 
-export class CallGroup extends RefGroup<CallBlock> {
+export class CallGroup extends SharedRefGroup<CallBlock> {
   public constructor() {
     super();
     makeObservable(this);

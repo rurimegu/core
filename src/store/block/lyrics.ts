@@ -23,7 +23,7 @@ import {
   ParentOptionalTextData,
 } from './base';
 import { LyricsTrack } from './track';
-import { IWithTags, TagsStore } from '../tags';
+import { IWithTags, TagsGroup, TagsStore } from '../tags';
 import { AnnotationBlock } from './annotation';
 import { SplitLyrics, SplitLyricsArray } from '../../utils';
 import { ANNO_INDIC, LYRICS_SEP } from '../../utils/constants';
@@ -52,7 +52,7 @@ export class LyricsBlock
   @observable public newline = false;
   @observable public space = false;
 
-  public readonly tags = LyricsBlock.tagsStore.createRef();
+  public readonly tags = new TagsGroup();
 
   public constructor() {
     super();
@@ -176,7 +176,7 @@ export class LyricsBlock
   public newCopy(): LyricsBlock {
     const newChildren = this.children.map((c) => c.newCopy());
     const ret = LyricsBlock.Create(this.text, newChildren);
-    ret.tags.deserialize(this.tags.tagIds.slice());
+    ret.tags.push(...this.tags);
     ret.newline = this.newline;
     ret.space = this.space;
     return ret;
@@ -202,7 +202,7 @@ export class LyricsBlock
     this.text = data.text ?? '';
     this.newline = Boolean(data.newline);
     this.space = Boolean(data.space);
-    if (data.tags) this.tags.deserialize(data.tags);
+    if (data.tags) this.tags.deserialize(data.tags, data.context);
     else this.tags.clear();
   }
   //#endregion ISerializable

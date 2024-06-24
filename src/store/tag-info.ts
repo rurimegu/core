@@ -4,7 +4,7 @@ import { BpmStore } from './bpm';
 export class TagsInfo {
   public readonly timing: Record<string, number> = {};
 
-  public recordTag(tag: string, duration: number) {
+  protected recordTag(tag: string, duration: number) {
     if (!this.timing[tag]) {
       this.timing[tag] = 0;
     }
@@ -19,8 +19,8 @@ export class TagsInfo {
     if (block instanceof LyricsBlock) {
       const duration =
         bpm.barToAudioTime(block.end) - bpm.barToAudioTime(block.start);
-      for (const id of block.tags.tagIds) {
-        this.recordTag(id, duration);
+      for (const tag of block.tags) {
+        this.recordTag(tag.id, duration);
       }
       return;
     }

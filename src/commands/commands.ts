@@ -14,8 +14,14 @@ import {
   NoopFn,
   UndoFunc,
 } from '../utils/types';
-import { TagsStore, LyricsTag, TagsRef } from '../store/tags';
-import { AnnotationBlock, CallBlock, CallGroup, LyricsBlock } from '../store';
+import { TagsStore, LyricsTag } from '../store/tags';
+import {
+  AnnotationBlock,
+  CallBlock,
+  CallGroup,
+  LyricsBlock,
+  TagsGroup,
+} from '../store';
 import { refManager } from '../utils/ref';
 
 //#region Command Base
@@ -414,6 +420,7 @@ export class UngroupCallsCommand extends GroupCallsCommand {
 //#region Tag Commands
 export class SetTagsStoreCommand extends Command {
   protected prevTags: LyricsTag[] = [];
+  protected deleteCmd: Command = Command.Noop();
 
   public constructor(
     public readonly store: TagsStore,
@@ -423,41 +430,62 @@ export class SetTagsStoreCommand extends Command {
   }
 
   public override execute(): void {
-    this.prevTags = [...this.store.tagList];
-    this.store.replaceTags(this.tags);
+    this.prevTags = this.store.tagList.map((t) => t.clone());
+    const removed = this.store.replaceTags(this.tags);
+    this.deleteCmd = new CommandSet(
+      removed.map((t) => refManager.deleteCmd(t.id)),
+    );
+    this.deleteCmd.execute();
   }
 
   public override undo(): void {
-    this.store.replaceTags(this.prevTags);
+    this.deleteCmd.undo();
+    const removed = this.store.replaceTags(this.prevTags);
+    new CommandSet(removed.map((t) => refManager.deleteCmd(t.id))).execute();
   }
 }
 
 export class AddTagsCommand extends Command {
-  public readonly tags: string[];
+  public tags: LyricsTag[];
   public constructor(
-    public readonly target: TagsRef,
-    ...tags: string[]
+    public readonly target: TagsGroup,
+    ...tags: LyricsTag[]
   ) {
     super();
     this.tags = tags;
   }
 
   public override execute(): void {
-    this.tags.forEach((tag) => this.target.addTag(tag));
+    this.tags = this.tags.filter((tag) =>
+      this.target.values.every((t) => t.id !== tag.id),
+    );
+    this.target.push(...this.tags);
   }
 
   public override undo(): void {
-    this.tags.forEach((tag) => this.target.removeTag(tag));
+    this.target.remove(...this.tags);
   }
 }
 
-export class RemoveTagsCommand extends AddTagsCommand {
+export class RemoveTagsCommand extends Command {
+  public tags: LyricsTag[];
+  public constructor(
+    public readonly target: TagsGroup,
+    ...tags: LyricsTag[]
+  ) {
+    super();
+    this.tags = tags;
+  }
+
   public override execute(): void {
-    super.undo();
+    this.tags = this.tags.filter((tag) =>
+      this.target.values.some((t) => t.id === tag.id),
+    );
+    this.target.remove(...this.tags);
   }
 
   public override undo(): void {
-    super.execute();
+    this.target.push(...this.tags);
   }
 }
 //#endregion Tag Commands

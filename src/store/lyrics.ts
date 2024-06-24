@@ -5,7 +5,7 @@ import { LyricsTagsData, TagsStore } from './tags';
 import { IDeserializable, ISerializable } from '../utils/io';
 import { DeserializeBlock } from './block/registry';
 import { runInAction } from 'mobx';
-import { DataError } from '../utils';
+import { DataError, FutureMap } from '../utils';
 import { LyricsMetadata, LyricsMetadataData } from './meta';
 import { LyricsBlock } from './block';
 
@@ -50,14 +50,15 @@ export class LyricsStore implements ISerializable, IDeserializable {
         `Lyrics is from a higher version ${version} > current version ${LyricsStore.VERSION}`,
       );
     }
+    const context = new FutureMap();
     runInAction(() => {
-      if (data.tracks) DeserializeBlock(this.tracks, data.tracks);
+      if (data.tracks) DeserializeBlock(this.tracks, data.tracks, context);
       else this.tracks.clear();
 
       if (data.bpm) this.bpm.deserialize(data.bpm);
       else this.bpm.clear();
 
-      if (data.tags) this.tags.deserialize(data.tags);
+      if (data.tags) this.tags.deserialize(data.tags, context);
       else this.tags.clear();
 
       if (data.meta) this.meta.deserialize(data.meta);
@@ -65,6 +66,14 @@ export class LyricsStore implements ISerializable, IDeserializable {
 
       // Must be last since IDs might change during deserialization
       this.persist.deserialize(data.persist ?? { nextId: 0 });
+
+      // Check for unresolved references
+      if (context.unresolvedCount > 0) {
+        console.warn('Failed to resolve:', context);
+        throw new DataError(
+          `Failed to resolve ${context.unresolvedCount} references`,
+        );
+      }
     });
   }
 

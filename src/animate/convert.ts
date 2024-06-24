@@ -285,7 +285,7 @@ export class RenderDataConverter {
   public convertLyricsBlock(block: LyricsBlock): LyricsBlockRenderData[] {
     const ret = new Array<LyricsBlockRenderData>();
     // Handle color.
-    const colors = block.tags.tags.map((x) => x.color);
+    const colors = block.tags.values.map((x) => x.color);
     // Handle top annotations.
     const annotations = block.isSimple
       ? []
@@ -617,7 +617,7 @@ export class RenderDataConverter {
     const ret = new TagsRenderData();
     const info = new TagsInfo();
     info.gatherInfo(this.lyrics.bpm, this.lyrics.tracks);
-    const sortedTags = [...tags.tagList]
+    const sortedTags = tags.tagList
       .filter((t) => (info.timing[t.id] ?? 0) > 0)
       .sort((a, b) => {
         return info.timing[b.id] - info.timing[a.id];

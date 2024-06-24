@@ -1,4 +1,4 @@
-import { DataError, ValueError } from '../../utils/error';
+import { ValueError } from '../../utils/error';
 import { BlockBase, BlockData, BlockDataHelpers, BlockType } from './base';
 import { AnnotationBlock } from './annotation';
 import { LyricsBlock } from './lyrics';
@@ -41,18 +41,16 @@ export function CreateBlock(data: BlockData & BlockDataHelpers): BlockBase {
   return block;
 }
 
-export function DeserializeBlock(block: BlockBase, data: BlockData) {
+export function DeserializeBlock(
+  block: BlockBase,
+  data: BlockData,
+  context: FutureMap,
+) {
   const dataWithHelpers: BlockData & BlockDataHelpers = {
     ...data,
     create: CreateBlock,
-    context: new FutureMap(),
+    context,
   };
   block.deserialize(dataWithHelpers);
-  if (dataWithHelpers.context.unresolvedCount > 0) {
-    console.warn('Failed to resolve:', dataWithHelpers.context);
-    throw new DataError(
-      `Failed to resolve ${dataWithHelpers.context.unresolvedCount} references`,
-    );
-  }
   return block;
 }
