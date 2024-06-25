@@ -27,7 +27,7 @@ import {
   Predicate,
   PunctuationPrefix,
   PunctuationSuffix,
-  Typeof,
+  OfType,
   Unreachable,
   ValueError,
   power2Near,
@@ -379,7 +379,7 @@ export class RenderDataConverter {
 
   protected preprocessCallsTrack(track: CallsTrack) {
     // Load all sing along blocks.
-    for (const block of Typeof(track.children, SingAlongBlock)) {
+    for (const block of OfType(track.children, SingAlongBlock)) {
       const lyricsBlock = block.lyricsBlock;
       if (!lyricsBlock) continue;
       if (lyricsBlock.id in this.singAlongMap) {
@@ -633,7 +633,7 @@ export class RenderDataConverter {
 
   public convert(duration: number): LyricsRenderData {
     const comments = this.convertCommentTracks(
-      Typeof(this.lyrics.tracks.children, CommentTrack),
+      OfType(this.lyrics.tracks.children, CommentTrack),
     );
     const lyrics = this.convertLyricsTracks();
     this.calcHint(lyrics);

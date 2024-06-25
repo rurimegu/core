@@ -37,7 +37,7 @@ export interface IWithSpacing {
 export interface IDispoable {
   dispose(): void;
 }
-export function Typeof<U>(arr: any[], type: Constructor<U>): U[] {
+export function OfType<U>(arr: any[], type: Constructor<U>): U[] {
   return arr.filter((x) => x instanceof type) as U[];
 }
 export function RemoveUndefined<T extends object>(

@@ -15,7 +15,7 @@ import {
   IWithBottomText,
   UserError,
   IWithSpacing,
-  Typeof,
+  OfType,
   UniqueBy,
 } from '../../utils';
 import { MRef, RemoveRefFn, SharedRefGroup } from '../../utils/ref';
@@ -343,7 +343,7 @@ export class SingAlongBlock extends CallBlockBase implements IWithSpacing {
 }
 
 export function checkFullCallGroup(blocks: BlockBase[]) {
-  const callBlocks = Typeof(blocks, CallBlock);
+  const callBlocks = OfType(blocks, CallBlock);
   const group = UniqueBy(callBlocks, (block) => block.group);
   if (group.some((g) => [...g.all].some((b) => !callBlocks.includes(b)))) {
     return false;
