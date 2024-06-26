@@ -16,6 +16,12 @@ function setChildren<T>(parent: T, children: IChildOf<T>[]) {
   }
 }
 
+export function getNextStart<T extends { start: number } & IChildOf<any>>(
+  obj: T,
+) {
+  return obj.next?.start ?? MAX_TIME;
+}
+
 export abstract class RenderDataBase {
   /** Start time in seconds. */
   public abstract get start(): number;
