@@ -2,6 +2,20 @@ import _ from 'lodash';
 import { BpmStore, LyricsMetadata } from '../store';
 import { Bisect, Clamp01, Color, InverseLerp, MAX_TIME } from '../utils';
 
+export interface IChildOf<T> {
+  parent?: T;
+  prev?: this;
+  next?: this;
+}
+
+function setChildren<T>(parent: T, children: IChildOf<T>[]) {
+  for (let i = 0; i < children.length; i++) {
+    children[i].parent = parent;
+    children[i].prev = children[i - 1];
+    children[i].next = children[i + 1];
+  }
+}
+
 export abstract class RenderDataBase {
   /** Start time in seconds. */
   public abstract get start(): number;
@@ -15,10 +29,23 @@ export abstract class RenderDataBase {
   public ratioClamped(time: number) {
     return Clamp01(this.ratio(time));
   }
+
+  public finalize() {
+    // Pass
+  }
 }
 
 //#region Tracks
-export abstract class LineBlockRenderData extends RenderDataBase {
+export abstract class LineBlockRenderData<P>
+  extends RenderDataBase
+  implements IChildOf<P>
+{
+  //#region IChildOf
+  public parent?: P;
+  public prev?: this;
+  public next?: this;
+  //#endregion
+
   constructor(
     /** Text to display. */
     public readonly text: string,
@@ -27,7 +54,7 @@ export abstract class LineBlockRenderData extends RenderDataBase {
   }
 }
 
-export class AnnotationRenderData extends LineBlockRenderData {
+export class AnnotationRenderData extends LineBlockRenderData<LyricsBlockRenderData> {
   constructor(
     public readonly start: number,
     public readonly end: number,
@@ -37,7 +64,7 @@ export class AnnotationRenderData extends LineBlockRenderData {
   }
 }
 
-export class LyricsBlockRenderData extends LineBlockRenderData {
+export class LyricsBlockRenderData extends LineBlockRenderData<LyricsLineRenderData> {
   constructor(
     public readonly start: number,
     public readonly end: number,
@@ -64,9 +91,14 @@ export class LyricsBlockRenderData extends LineBlockRenderData {
   public static Space(start: number, end: number, fullWidth = false) {
     return new LyricsBlockRenderData(start, end, fullWidth ? '　' : ' ');
   }
+
+  public override finalize() {
+    setChildren(this, this.children);
+    this.children.forEach((x) => x.finalize());
+  }
 }
 
-export class CallBlockRenderData extends LineBlockRenderData {
+export class CallBlockRenderData extends LineBlockRenderData<CallLineRenderData> {
   constructor(
     public readonly start: number,
     public readonly end: number,
@@ -77,7 +109,7 @@ export class CallBlockRenderData extends LineBlockRenderData {
   }
 }
 
-export class CommentRenderData extends LineBlockRenderData {
+export class CommentRenderData extends LineBlockRenderData<CommentLineRenderData> {
   constructor(
     public readonly start: number,
     public readonly end: number,
@@ -87,7 +119,19 @@ export class CommentRenderData extends LineBlockRenderData {
   }
 }
 
-export class LineRenderData<T extends RenderDataBase> extends RenderDataBase {
+export class LineRenderData<
+    T extends RenderDataBase & IChildOf<LineRenderData<T, any>>,
+    P,
+  >
+  extends RenderDataBase
+  implements IChildOf<P>
+{
+  //#region IChildOf
+  public parent?: P;
+  public prev?: this;
+  public next?: this;
+  //#endregion
+
   constructor(
     /** Children. */
     public readonly children: T[] = [],
@@ -110,9 +154,17 @@ export class LineRenderData<T extends RenderDataBase> extends RenderDataBase {
   public get last() {
     return this.children[this.children.length - 1];
   }
+
+  public override finalize() {
+    setChildren(this, this.children);
+    this.children.forEach((x) => x.finalize());
+  }
 }
 
-export class LyricsLineRenderData extends LineRenderData<LyricsBlockRenderData> {
+export class LyricsLineRenderData extends LineRenderData<
+  LyricsBlockRenderData,
+  LyricsParagraphRenderData
+> {
   /** Hint seconds before start time. If undefined, will not render hint animation. */
   public hint?: number;
 
@@ -137,7 +189,7 @@ export class LyricsLineRenderData extends LineRenderData<LyricsBlockRenderData> 
     return this.children.filter((x) => !x.isEmpty);
   }
 
-  public finalize() {
+  public override finalize() {
     if (this.isEmpty) return; // No need to finalize placeholder block
     while (this.children[this.children.length - 1].isEmpty) {
       this.children.pop();
@@ -145,10 +197,14 @@ export class LyricsLineRenderData extends LineRenderData<LyricsBlockRenderData> 
     while (this.children[0].isEmpty) {
       this.children.shift();
     }
+    super.finalize();
   }
 }
 
-export class CallLineRenderData extends LineRenderData<CallBlockRenderData> {
+export class CallLineRenderData extends LineRenderData<
+  CallBlockRenderData,
+  MultiCallLineRenderData
+> {
   /** Hint seconds before start time. If undefined, will not render hint animation. */
   public hint?: number;
 
@@ -170,12 +226,40 @@ export class CallLineRenderData extends LineRenderData<CallBlockRenderData> {
   }
 }
 
-export class CommentLineRenderData extends LineRenderData<CommentRenderData> {}
+export class CommentLineRenderData extends LineRenderData<
+  CommentRenderData,
+  CommentTrackRenderData
+> {}
 
-export class LyricsParagraphRenderData extends RenderDataBase {
+export class MultiCallLineRenderData
+  extends Array<CallLineRenderData>
+  implements IChildOf<LyricsParagraphRenderData>
+{
+  //#region IChildOf
+  public parent?: LyricsParagraphRenderData;
+  public prev?: this;
+  public next?: this;
+  //#endregion
+
+  public finalize() {
+    setChildren(this, this);
+    this.forEach((x) => x.finalize());
+  }
+}
+
+export class LyricsParagraphRenderData
+  extends RenderDataBase
+  implements IChildOf<LyricsMultiParagraphRenderData>
+{
+  //#region IChildOf
+  public parent?: LyricsMultiParagraphRenderData;
+  public prev?: this;
+  public next?: this;
+  //#endregion
+
   public constructor(
     public readonly lyrics: LyricsLineRenderData,
-    public readonly calls: CallLineRenderData[][] = [],
+    public readonly calls: MultiCallLineRenderData[] = [],
   ) {
     super();
   }
@@ -209,8 +293,11 @@ export class LyricsParagraphRenderData extends RenderDataBase {
     );
   }
 
-  public finalize() {
+  public override finalize() {
     this.lyrics.finalize();
+    setChildren(this, this.calls);
+    this.calls.forEach((x) => x.finalize());
+    super.finalize();
   }
 
   public removeEmpty() {
@@ -218,11 +305,15 @@ export class LyricsParagraphRenderData extends RenderDataBase {
   }
 }
 
-export class LyricsMultiParagraphRenderData extends Array<LyricsParagraphRenderData> {
-  public finalize() {
-    this.forEach((x) => x.finalize());
-    this.sort((a, b) => a.start - b.start);
-  }
+export class LyricsMultiParagraphRenderData
+  extends Array<LyricsParagraphRenderData>
+  implements IChildOf<LyricsTrackRenderData>
+{
+  //#region IChildOf
+  public parent?: LyricsTrackRenderData;
+  public prev?: this;
+  public next?: this;
+  //#endregion
 
   public get start() {
     return this[0].start;
@@ -239,10 +330,26 @@ export class LyricsMultiParagraphRenderData extends Array<LyricsParagraphRenderD
   public removeEmpty() {
     _.remove(this, (x) => x.isEmpty);
   }
+
+  public finalize() {
+    setChildren(this, this);
+    this.forEach((x) => x.finalize());
+    this.sort((a, b) => a.start - b.start);
+  }
 }
 
-export class LyricsTrackRenderData extends Array<LyricsMultiParagraphRenderData> {
+export class LyricsTrackRenderData
+  extends Array<LyricsMultiParagraphRenderData>
+  implements IChildOf<LyricsRenderData>
+{
+  //#region IChildOf
+  public parent?: LyricsRenderData;
+  public prev?: this;
+  public next?: this;
+  //#endregion
+
   public finalize() {
+    setChildren(this, this);
     this.forEach((x) => x.finalize());
     this.sort((a, b) => a.start - b.start);
   }
@@ -253,7 +360,16 @@ export class LyricsTrackRenderData extends Array<LyricsMultiParagraphRenderData>
   }
 }
 
-export class CommentTrackRenderData extends Array<CommentLineRenderData> {
+export class CommentTrackRenderData
+  extends Array<CommentLineRenderData>
+  implements IChildOf<LyricsRenderData>
+{
+  //#region IChildOf
+  public parent?: LyricsRenderData;
+  public prev?: this;
+  public next?: this;
+  //#endregion
+
   public addComment(...comments: CommentRenderData[]) {
     for (const comment of comments) {
       let inserted = false;
@@ -276,11 +392,20 @@ export class CommentTrackRenderData extends Array<CommentLineRenderData> {
       this.push(track);
     }
   }
+
+  public finalize() {
+    setChildren(this, this);
+    this.forEach((x) => x.finalize());
+  }
 }
 //#endregion Tracks
 
 //#region Metadata
-export class TagRenderData {
+export class TagRenderData implements IChildOf<TagsRenderData> {
+  public parent?: TagsRenderData;
+  public prev?: this;
+  public next?: this;
+
   public constructor(
     public readonly name: string,
     public readonly color: Color,
@@ -288,7 +413,20 @@ export class TagRenderData {
   ) {}
 }
 
-export class TagsRenderData extends Array<TagRenderData> {}
+export class TagsRenderData
+  extends Array<TagRenderData>
+  implements IChildOf<LyricsRenderData>
+{
+  //#region IChildOf
+  public parent?: LyricsRenderData;
+  public prev?: this;
+  public next?: this;
+  //#endregion
+
+  public finalize() {
+    setChildren(this, this);
+  }
+}
 //#endregion Metadata
 
 export class LyricsRenderData extends RenderDataBase {
@@ -301,9 +439,19 @@ export class LyricsRenderData extends RenderDataBase {
     public readonly tags: TagsRenderData,
   ) {
     super();
+    lyrics.parent = this;
+    comments.parent = this;
+    tags.parent = this;
   }
 
   public override get start() {
     return 0;
+  }
+
+  public override finalize(): void {
+    super.finalize();
+    this.lyrics.finalize();
+    this.comments.finalize();
+    this.tags.finalize();
   }
 }

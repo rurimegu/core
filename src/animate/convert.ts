@@ -49,12 +49,13 @@ import {
   TagsRenderData,
   TagRenderData,
   LyricsMultiParagraphRenderData,
+  MultiCallLineRenderData,
 } from './render-data';
 
 abstract class LineConverter<
   B extends BlockBase,
   U extends RenderDataBase,
-  T extends LineRenderData<U>,
+  T extends LineRenderData<U, any>,
 > {
   protected head = 0;
   protected currentLine_: T | undefined;
@@ -405,12 +406,12 @@ export class RenderDataConverter {
     onlyContained: boolean,
   ) {
     const paragraph = new LyricsParagraphRenderData(main);
-    const predicate: Predicate<LineRenderData<any>> = onlyContained
+    const predicate: Predicate<RenderDataBase> = onlyContained
       ? (x) => x.end <= main.end
       : (x) => x.start < main.end;
     // Find the next line in other tracks.
     for (const conv of convs) {
-      const lines = new Array<CallLineRenderData>();
+      const lines = new MultiCallLineRenderData();
       while (!conv.isFinished && predicate(conv.currentLine!)) {
         lines.push(conv.currentLine!);
         conv.nextLine();
@@ -455,10 +456,12 @@ export class RenderDataConverter {
     const leftLyrics = paragraph.lyrics.children.slice(0, idx);
     const rightCalls = paragraph.calls
       .map((c) => c.filter((x) => ApproxGeq(x.start, rightLyrics[0].start)))
-      .filter((x) => x.length > 0);
+      .filter((x) => x.length > 0)
+      .map((x) => new MultiCallLineRenderData(...x));
     const leftCalls = paragraph.calls
       .map((c) => c.filter((x) => !rightCalls.flat().includes(x)))
-      .filter((x) => x.length > 0);
+      .filter((x) => x.length > 0)
+      .map((x) => new MultiCallLineRenderData(...x));
     return [
       new LyricsParagraphRenderData(
         new LyricsLineRenderData(leftLyrics),
@@ -645,6 +648,7 @@ export class RenderDataConverter {
       this.lyrics.bpm,
       this.convertTags(this.lyrics.tags),
     );
+    ret.finalize();
     return ret;
   }
 }
