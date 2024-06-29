@@ -219,6 +219,7 @@ export class CallLineRenderData extends LineRenderData<
     children: CallBlockRenderData[] = [],
     /** Repeated at different offsets. */
     public readonly repeatOffsets: number[] = [0],
+    public readonly muted = false,
   ) {
     super(children);
   }

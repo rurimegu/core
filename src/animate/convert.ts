@@ -54,6 +54,7 @@ import {
 
 abstract class LineConverter<
   B extends BlockBase,
+  P extends ParentBlockBase<B>,
   U extends RenderDataBase,
   T extends LineRenderData<U, any>,
 > {
@@ -62,7 +63,7 @@ abstract class LineConverter<
 
   constructor(
     public readonly parent: RenderDataConverter,
-    public track: ParentBlockBase<B>,
+    public track: P,
   ) {
     this.nextLine();
   }
@@ -93,6 +94,7 @@ abstract class LineConverter<
 
 class LyricsLineConverter extends LineConverter<
   LyricsBlock,
+  LyricsTrack,
   LyricsBlockRenderData,
   LyricsLineRenderData
 > {
@@ -129,6 +131,7 @@ class LyricsLineConverter extends LineConverter<
 
 class CallLineConverter extends LineConverter<
   CallBlockBase,
+  CallsTrack,
   CallBlockRenderData,
   CallLineRenderData
 > {
@@ -230,7 +233,7 @@ class CallLineConverter extends LineConverter<
   protected getCallBlocks() {
     // Checks whether hint is needed.
     const [blocks, repeatOffsets] = this.calcRepeatOffsets();
-    return new CallLineRenderData(blocks, repeatOffsets);
+    return new CallLineRenderData(blocks, repeatOffsets, this.track.muted);
   }
 
   public override nextLine() {
@@ -242,8 +245,8 @@ class CallLineConverter extends LineConverter<
     if (head instanceof SingAlongBlock) {
       const blocks = this.calcSimpleCallBlocks();
       const repeatOffsets = [0];
-      // No need to hint for sing along blocks.
-      this.currentLine_ = new CallLineRenderData(blocks, repeatOffsets);
+      // No need to hint for sing along blocks. It's also always muted.
+      this.currentLine_ = new CallLineRenderData(blocks, repeatOffsets, true);
     } else {
       this.currentLine_ = this.getCallBlocks();
     }
