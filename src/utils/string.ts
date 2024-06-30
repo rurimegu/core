@@ -1,7 +1,7 @@
 import { eastAsianWidth } from 'get-east-asian-width';
 import { LYRICS_SEP } from './constants';
 
-const PUNCTUATIONS = ['ー', '→'];
+const PUNCTUATIONS = ['ー', '→', '-', '☆'];
 const JPN_SMALL = 'ぁぃぅぇぉっゃゅょァィゥェォッャュョ';
 
 export function FormatTime(time: number, precision = 0) {
@@ -128,7 +128,8 @@ export function SplitWords(text: string): string[] {
     while (
       j < text.length &&
       !/^\s$/u.test(text[j]) &&
-      IsHalfWidth(text.charCodeAt(j))
+      IsHalfWidth(text.charCodeAt(j)) &&
+      !IsPunctuation(text[j])
     )
       j++;
     if (j !== i) {

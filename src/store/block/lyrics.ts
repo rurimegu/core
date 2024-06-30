@@ -171,6 +171,8 @@ export class LyricsBlock
   public mergeRight(block: LyricsBlock): void {
     this.push(...block.children);
     this.text += block.text;
+    this.newline = block.newline;
+    this.space = block.space;
   }
 
   public newCopy(): LyricsBlock {
