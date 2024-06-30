@@ -1,5 +1,6 @@
 import { ValueError } from './error';
 import { ISerializable } from './io';
+import { Clamp01 } from './math';
 
 export function Identity<T>(x: T): T {
   return x;
@@ -126,6 +127,18 @@ export class Color implements ISerializable {
     if (!color) throw new ValueError('Invalid color');
     return color;
   }
+}
+
+export function LerpColor(a: Color, b: Color, t: number): Color {
+  return LerpColorUnclamped(a, b, Clamp01(t));
+}
+
+export function LerpColorUnclamped(a: Color, b: Color, t: number): Color {
+  return new Color(
+    Math.round(a.r + (b.r - a.r) * t),
+    Math.round(a.g + (b.g - a.g) * t),
+    Math.round(a.b + (b.b - a.b) * t),
+  );
 }
 
 export function DeepEquals<T>(a: T, b: T): boolean {

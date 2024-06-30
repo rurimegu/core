@@ -25,6 +25,7 @@ const RenderTemplates = z
     lyricsBlock: RenderTemplateWithDefault('default').default({}),
     lyricsHint: RenderTemplateWithDefault('default').default({}),
     lyricsColumn: RenderTemplateWithDefault('default').default({}),
+    lyricsLine: RenderTemplateWithDefault('default').default({}),
     metaColumn: RenderTemplateWithDefault('default').default({}),
   })
   .strict();
