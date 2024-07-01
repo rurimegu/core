@@ -142,6 +142,8 @@ export class LyricsBlock
         if (newBlocks.length > 0) start = newBlocks[newBlocks.length - 1].end;
       }
     }
+    // Add newline at the end
+    if (blocks.length > 0) blocks[blocks.length - 1].newline = true;
     return blocks;
   }
 
@@ -169,8 +171,22 @@ export class LyricsBlock
 
   @action
   public mergeRight(block: LyricsBlock): void {
-    this.push(...block.children);
-    this.text += block.text;
+    if (block.isSimple) {
+      if (this.isSimple) {
+        this.first.text += block.first.text;
+        this.first.end = block.first.end;
+      } else {
+        this.text += block.first.text;
+      }
+    } else {
+      if (this.isSimple) {
+        this.text = this.bottomText + block.bottomText;
+        this.replace(block.children);
+      } else {
+        this.push(...block.children);
+        this.text += block.text;
+      }
+    }
     this.newline = block.newline;
     this.space = block.space;
   }
