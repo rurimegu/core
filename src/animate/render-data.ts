@@ -113,6 +113,10 @@ export class CallBlockRenderData extends LineBlockRenderData<CallLineRenderData>
   ) {
     super(text);
   }
+
+  public get isEmpty() {
+    return !this.text;
+  }
 }
 
 export class CommentRenderData extends LineBlockRenderData<CommentLineRenderData> {
@@ -197,13 +201,19 @@ export class LyricsLineRenderData extends LineRenderData<
 
   public override finalize() {
     if (this.isEmpty) return; // No need to finalize placeholder block
-    while (this.children[this.children.length - 1].isEmpty) {
+    super.finalize();
+  }
+
+  public removeEmpty() {
+    while (
+      this.children.length > 0 &&
+      this.children[this.children.length - 1].isEmpty
+    ) {
       this.children.pop();
     }
-    while (this.children[0].isEmpty) {
+    while (this.children.length > 0 && this.children[0].isEmpty) {
       this.children.shift();
     }
-    super.finalize();
   }
 }
 
@@ -231,6 +241,10 @@ export class CallLineRenderData extends LineRenderData<
   public override get end() {
     return this.firstEnd + this.repeatOffsets[this.repeatOffsets.length - 1];
   }
+
+  public get isEmpty() {
+    return this.children.every((x) => x.isEmpty);
+  }
 }
 
 export class CommentLineRenderData extends LineRenderData<
@@ -251,6 +265,14 @@ export class MultiCallLineRenderData
   public finalize() {
     setChildren(this, this);
     this.forEach((x) => x.finalize());
+  }
+
+  public removeEmpty() {
+    _.remove(this, (x) => x.isEmpty);
+  }
+
+  public get isEmpty() {
+    return this.every((x) => x.isEmpty);
   }
 }
 
@@ -279,7 +301,7 @@ export class LyricsParagraphRenderData
 
   public override get start() {
     return Math.min(
-      this.lyrics.start,
+      this.lyrics.isEmpty ? MAX_TIME : this.lyrics.start,
       this.calls
         .flatMap((c) => c)
         .reduce((a, b) => Math.min(a, b.start), MAX_TIME),
@@ -288,7 +310,7 @@ export class LyricsParagraphRenderData
 
   public override get end() {
     return Math.max(
-      this.lyrics.end,
+      this.lyrics.isEmpty ? 0 : this.lyrics.end,
       this.calls.flat().reduce((a, b) => Math.max(a, b.end), 0),
     );
   }
@@ -308,7 +330,9 @@ export class LyricsParagraphRenderData
   }
 
   public removeEmpty() {
-    _.remove(this.calls, (x) => x.every((y) => y.children.length === 0));
+    this.lyrics.removeEmpty();
+    this.calls.forEach((x) => x.removeEmpty());
+    _.remove(this.calls, (x) => x.isEmpty);
   }
 }
 
@@ -335,6 +359,7 @@ export class LyricsMultiParagraphRenderData
   }
 
   public removeEmpty() {
+    this.forEach((x) => x.removeEmpty());
     _.remove(this, (x) => x.isEmpty);
   }
 

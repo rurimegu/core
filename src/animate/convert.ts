@@ -178,7 +178,7 @@ class CallLineConverter extends LineConverter<
     const repeatInterval =
       this.parent.lyrics.bpm.barToAudioTime(possibleRepeats[1].start) -
       this.parent.lyrics.bpm.barToAudioTime(head.start);
-    const repeatOffsets = new Array<number>();
+    const repeatOffsets: number[] = [];
 
     // Find max repeats.
     let encounteredNewline = false;
@@ -225,6 +225,10 @@ class CallLineConverter extends LineConverter<
         this.parent.lyrics.bpm.barToAudioTime(track.children[i].start) -
           blocks[0].start,
       );
+    }
+    if (repeatOffsets.length === 0) {
+      // No repeats.
+      return [this.calcSimpleCallBlocks(), [0]];
     }
     this.head += repeatOffsets.length * blocks.length;
     return [blocks, repeatOffsets];
