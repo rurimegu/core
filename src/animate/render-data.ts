@@ -104,12 +104,11 @@ export class LyricsBlockRenderData extends LineBlockRenderData<LyricsLineRenderD
   }
 }
 
-export class CallBlockRenderData extends LineBlockRenderData<CallLineRenderData> {
+export class CallBlockRenderData extends LineBlockRenderData<CallBlocksRenderData> {
   constructor(
     public readonly start: number,
     public readonly end: number,
     text: string,
-    public isSingAlong: boolean = false,
   ) {
     super(text);
   }
@@ -217,9 +216,9 @@ export class LyricsLineRenderData extends LineRenderData<
   }
 }
 
-export class CallLineRenderData extends LineRenderData<
+export class CallBlocksRenderData extends LineRenderData<
   CallBlockRenderData,
-  MultiCallLineRenderData
+  CallLineRenderData
 > {
   /** Hint seconds before start time. If undefined, will not render hint animation. */
   public hint?: number;
@@ -227,6 +226,31 @@ export class CallLineRenderData extends LineRenderData<
   public constructor(
     /** Children. */
     children: CallBlockRenderData[] = [],
+    public readonly isSingAlong = false,
+  ) {
+    super(children);
+  }
+
+  public get isEmpty() {
+    return this.children.every((x) => x.isEmpty);
+  }
+
+  public override finalize() {
+    this.children.forEach((x) => x.finalize());
+  }
+
+  public removeEmpty() {
+    _.remove(this.children, (x) => x.isEmpty);
+  }
+}
+
+export class CallLineRenderData extends LineRenderData<
+  CallBlocksRenderData,
+  MultiCallLineRenderData
+> {
+  public constructor(
+    /** Children. */
+    children: CallBlocksRenderData[] = [],
     /** Repeated at different offsets. */
     public readonly repeatOffsets: number[] = [0],
     public readonly muted = false,

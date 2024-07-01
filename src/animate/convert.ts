@@ -1,6 +1,5 @@
 import {
   AnnotationBlock,
-  BlockBase,
   CallBlock,
   CallBlockBase,
   CallsTrack,
@@ -50,13 +49,12 @@ import {
   TagRenderData,
   LyricsMultiParagraphRenderData,
   MultiCallLineRenderData,
+  CallBlocksRenderData,
 } from './render-data';
 
 abstract class LineConverter<
-  B extends BlockBase,
-  P extends ParentBlockBase<B>,
-  U extends RenderDataBase,
-  T extends LineRenderData<U, any>,
+  P extends ParentBlockBase<any>,
+  T extends LineRenderData<any, any>,
 > {
   protected head = 0;
   protected currentLine_: T | undefined;
@@ -93,9 +91,7 @@ abstract class LineConverter<
 }
 
 class LyricsLineConverter extends LineConverter<
-  LyricsBlock,
   LyricsTrack,
-  LyricsBlockRenderData,
   LyricsLineRenderData
 > {
   public override nextLine() {
@@ -129,29 +125,23 @@ class LyricsLineConverter extends LineConverter<
   }
 }
 
-class CallLineConverter extends LineConverter<
-  CallBlockBase,
-  CallsTrack,
-  CallBlockRenderData,
-  CallLineRenderData
-> {
-  protected calcSimpleCallBlocks(): CallBlockRenderData[] {
-    const blocks = new Array<CallBlockRenderData>();
+class CallLineConverter extends LineConverter<CallsTrack, CallLineRenderData> {
+  protected calcSimpleCallBlocks(): CallBlocksRenderData {
+    const blocks = new Array<CallBlockBase>();
     while (!this.isHeadFinished) {
       const block = this.headBlock!;
-      const data = this.parent.convertCallBlock(block);
-      blocks.push(data);
+      blocks.push(block);
       this.moveHeadNext();
       if (block.newline) break;
     }
-    return blocks;
+    return this.parent.convertCallBlocks(blocks);
   }
   /**
    * Calculate repeat offsets for the call blocks starting from `startIdx`.
    * @param startIdx The index of the first call block.
    * @returns A tuple of the call blocks and repeat offsets.
    */
-  protected calcRepeatOffsets(): [CallBlockRenderData[], number[]] {
+  protected calcRepeatOffsets(): [CallBlocksRenderData[], number[]] {
     const track = this.track as CallsTrack;
     const startIdx = this.head;
     const head = track.children[startIdx] as CallBlock;
@@ -159,21 +149,26 @@ class CallLineConverter extends LineConverter<
     const possibleRepeats = [...group.all]
       .filter((b) => b.start.compare(head.start) >= 0)
       .sort((a, b) => a.start.compare(b.start));
+    const calcSimple = (): [CallBlocksRenderData[], number[]] => [
+      [this.calcSimpleCallBlocks()],
+      [0],
+    ];
 
     if (possibleRepeats.length <= 1) {
       // No repeats.
-      return [this.calcSimpleCallBlocks(), [0]];
+      return calcSimple();
     }
 
     const endIdx = track.children.indexOf(possibleRepeats[1]);
-    const blocks = track.children
-      .slice(startIdx, endIdx)
-      .map((b) => this.parent.convertCallBlock(b));
+    const originalBlocks = track.children.slice(startIdx, endIdx);
 
-    if (blocks.some((b) => b.isSingAlong)) {
+    if (originalBlocks.some((b) => b instanceof SingAlongBlock)) {
       // Sing along blocks should not be repeated.
-      return [this.calcSimpleCallBlocks(), [0]];
+      return calcSimple();
     }
+
+    const batchBlocks = this.parent.batchConvertCallBlocks(originalBlocks);
+    const blocks = batchBlocks.flatMap((b) => b.children);
 
     const repeatInterval =
       this.parent.lyrics.bpm.barToAudioTime(possibleRepeats[1].start) -
@@ -228,10 +223,10 @@ class CallLineConverter extends LineConverter<
     }
     if (repeatOffsets.length === 0) {
       // No repeats.
-      return [this.calcSimpleCallBlocks(), [0]];
+      return calcSimple();
     }
     this.head += repeatOffsets.length * blocks.length;
-    return [blocks, repeatOffsets];
+    return [batchBlocks, repeatOffsets];
   }
 
   protected getCallBlocks() {
@@ -250,7 +245,7 @@ class CallLineConverter extends LineConverter<
       const blocks = this.calcSimpleCallBlocks();
       const repeatOffsets = [0];
       // No need to hint for sing along blocks. It's also always muted.
-      this.currentLine_ = new CallLineRenderData(blocks, repeatOffsets, true);
+      this.currentLine_ = new CallLineRenderData([blocks], repeatOffsets, true);
     } else {
       this.currentLine_ = this.getCallBlocks();
     }
@@ -357,16 +352,30 @@ export class RenderDataConverter {
       this.lyrics.bpm.barToAudioTime(block.start),
       this.lyrics.bpm.barToAudioTime(block.end),
       block.text,
-      block instanceof SingAlongBlock,
     );
   }
 
-  public convertCallLine(
-    blocks: CallBlock[],
-    repeatOffsets: number[],
-  ): CallLineRenderData {
-    const callBlocks = blocks.map((x) => this.convertCallBlock(x));
-    return new CallLineRenderData(callBlocks, repeatOffsets);
+  public convertCallBlocks(blocks: CallBlockBase[]): CallBlocksRenderData {
+    return new CallBlocksRenderData(
+      blocks.map((x) => this.convertCallBlock(x)),
+      blocks[0] instanceof SingAlongBlock,
+    );
+  }
+
+  public batchConvertCallBlocks(
+    blocks: CallBlockBase[],
+  ): CallBlocksRenderData[] {
+    const cur: CallBlockBase[] = [];
+    const ret: CallBlocksRenderData[] = [];
+    for (const block of blocks) {
+      cur.push(block);
+      if (block.space || block.newline) {
+        ret.push(this.convertCallBlocks(cur));
+        cur.length = 0;
+      }
+    }
+    if (cur.length > 0) ret.push(this.convertCallBlocks(cur));
+    return ret;
   }
 
   public convertComment(block: CommentBlock): CommentRenderData {
@@ -612,7 +621,7 @@ export class RenderDataConverter {
     let prevCallsEnd = 0;
     const calls = data.flat().flatMap((x) => x.calls.flatMap((y) => y));
     calls.sort((a, b) => a.start - b.start);
-    for (const call of calls) {
+    for (const call of calls.flatMap((x) => x.children)) {
       const voidTime = call.start - prevCallsEnd;
       const minHint = this.hintIntervalAt(call.start).hintCallLine;
       if (voidTime >= this.config.minIntervals.hintCallLine)
