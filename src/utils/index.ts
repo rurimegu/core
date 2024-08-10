@@ -9,3 +9,4 @@ export * from './math';
 export * from './algo';
 export * from './constants';
 export * from './web';
+export * from './time';
