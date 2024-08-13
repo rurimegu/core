@@ -10,3 +10,4 @@ export * from './algo';
 export * from './constants';
 export * from './web';
 export * from './time';
+export * from './block-pos';

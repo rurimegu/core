@@ -9,7 +9,7 @@ import { DataError, FutureMap } from '../utils';
 import { LyricsMetadata, LyricsMetadataData } from './meta';
 import { LyricsBlock } from './block';
 
-interface LyricsStoreData {
+export interface LyricsStoreData {
   tracks: TracksData;
   bpm: BpmStoreData;
   tags: LyricsTagsData;
