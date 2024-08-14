@@ -624,14 +624,17 @@ export class RenderDataConverter {
     }
     // Calculate hint for calls.
     let prevCallsEnd = 0;
-    const calls = data.flat().flatMap((x) => x.calls.flatMap((y) => y));
+    const calls = data.flat().flatMap((x) => x.calls.flat());
     calls.sort((a, b) => a.start - b.start);
-    for (const call of calls.flatMap((x) => x.children)) {
-      const voidTime = call.start - prevCallsEnd;
-      const minHint = this.hintIntervalAt(call.start).hintCallLine;
-      if (voidTime >= this.config.minIntervals.hintCallLine)
-        call.hint = minHint;
-      prevCallsEnd = Math.max(call.end, prevCallsEnd);
+    for (const callLine of calls) {
+      for (const call of callLine.children) {
+        const voidTime = call.start - prevCallsEnd;
+        const minHint = this.hintIntervalAt(call.start).hintCallLine;
+        if (voidTime >= this.config.minIntervals.hintCallLine)
+          call.hint = minHint;
+        prevCallsEnd = Math.max(call.end, prevCallsEnd);
+      }
+      prevCallsEnd = Math.max(callLine.end, prevCallsEnd);
     }
   }
   //#endregion Track converters
