@@ -1,4 +1,4 @@
-import { RenderDataBase } from '@rurino/core';
+import { RenderDataBase } from '../animate/render-data';
 import {
   Bisect,
   Lerp,

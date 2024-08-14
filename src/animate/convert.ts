@@ -129,10 +129,15 @@ class CallLineConverter extends LineConverter<CallsTrack, CallLineRenderData> {
   protected calcSimpleCallBlocks(): CallBlocksRenderData {
     const blocks = new Array<CallBlockBase>();
     while (!this.isHeadFinished) {
-      const block = this.headBlock!;
+      const block = this.headBlock! as CallBlockBase;
       blocks.push(block);
       this.moveHeadNext();
-      if (block.newline) break;
+      if (
+        block.newline ||
+        block instanceof SingAlongBlock !==
+          this.headBlock instanceof SingAlongBlock
+      )
+        break;
     }
     return this.parent.convertCallBlocks(blocks);
   }
@@ -289,7 +294,6 @@ export class RenderDataConverter {
     const ret = new Array<LyricsBlockRenderData>();
     // Handle color.
     const colors = block.tags.values.map((x) => x.color);
-    console.log('tag values', block.tags.values);
     // Handle top annotations.
     const annotations = block.isSimple
       ? []
