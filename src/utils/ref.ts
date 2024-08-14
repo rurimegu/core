@@ -214,11 +214,9 @@ export class UniqueRefGroup<T extends IWithId>
   }
 
   public deserialize(data: string[], context: FutureMap): void {
-    void Promise.all(data.map((id) => context.getAsync(id))).then(
-      (items: T[]) => {
-        this.replace(...items);
-      },
-    );
+    context.batchRunWhenReady(data, (items: T[]) => {
+      this.replace(...items);
+    });
   }
   //#endregion ISerializable
 }

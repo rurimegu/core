@@ -289,6 +289,7 @@ export class RenderDataConverter {
     const ret = new Array<LyricsBlockRenderData>();
     // Handle color.
     const colors = block.tags.values.map((x) => x.color);
+    console.log('tag values', block.tags.values);
     // Handle top annotations.
     const annotations = block.isSimple
       ? []

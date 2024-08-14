@@ -193,10 +193,17 @@ export class FutureMap {
     }
   }
 
-  public getAsync(key: string) {
-    return new Promise<any>((resolve) => {
-      this.runWhenReady(key, resolve);
-    });
+  public batchRunWhenReady(keys: string[], executor: FutureExecutor) {
+    let remainingCnt = keys.length;
+    const values = new Array(keys.length);
+    keys.map((key, i) =>
+      this.runWhenReady(key, (value) => {
+        values[i] = value;
+        if (--remainingCnt === 0) {
+          executor(values);
+        }
+      }),
+    );
   }
 
   public get unresolvedCount() {

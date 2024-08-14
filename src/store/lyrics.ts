@@ -68,6 +68,7 @@ export class LyricsStore implements ISerializable, IDeserializable {
       this.persist.deserialize(data.persist ?? { nextId: 0 });
 
       // Check for unresolved references
+      console.log('Lyrics deserialization finished:', context);
       if (context.unresolvedCount > 0) {
         console.warn('Failed to resolve:', context);
         throw new DataError(
