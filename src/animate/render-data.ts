@@ -235,10 +235,6 @@ export class CallBlocksRenderData extends LineRenderData<
     return this.children.every((x) => x.isEmpty);
   }
 
-  public override finalize() {
-    this.children.forEach((x) => x.finalize());
-  }
-
   public removeEmpty() {
     _.remove(this.children, (x) => x.isEmpty);
   }
