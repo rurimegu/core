@@ -1,5 +1,10 @@
 import _ from 'lodash';
-import { BpmStore, LyricsMetadata } from '../store';
+import {
+  AnnotationBlock,
+  BpmStore,
+  LyricsBlock,
+  LyricsMetadata,
+} from '../store';
 import { Bisect, Clamp01, Color, InverseLerp, MAX_TIME } from '../utils';
 
 export interface IChildOf<T> {
@@ -65,6 +70,7 @@ export class AnnotationRenderData extends LineBlockRenderData<LyricsBlockRenderD
     public readonly start: number,
     public readonly end: number,
     text: string,
+    public readonly origin: AnnotationBlock,
   ) {
     super(text);
   }
@@ -76,6 +82,8 @@ export class LyricsBlockRenderData extends LineBlockRenderData<LyricsLineRenderD
     public readonly end: number,
     /** Text to display. A block might be split into multiple render data, and therefore the text might be different. */
     text: string,
+    /** Original block reference. */
+    public readonly origin?: LyricsBlock,
     /** Colors. Will be empty if not provided. */
     public readonly colors: Color[] = [],
     /** Children. */
@@ -94,8 +102,18 @@ export class LyricsBlockRenderData extends LineBlockRenderData<LyricsLineRenderD
     return !this.text && this.children.length === 0;
   }
 
-  public static Space(start: number, end: number, fullWidth = false) {
-    return new LyricsBlockRenderData(start, end, fullWidth ? '　' : ' ');
+  public static Space(
+    start: number,
+    end: number,
+    fullWidth = false,
+    origin?: LyricsBlock,
+  ) {
+    return new LyricsBlockRenderData(
+      start,
+      end,
+      fullWidth ? '　' : ' ',
+      origin,
+    );
   }
 
   public override finalize() {

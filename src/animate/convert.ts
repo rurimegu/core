@@ -287,6 +287,7 @@ export class RenderDataConverter {
       this.lyrics.bpm.barToAudioTime(block.start),
       this.lyrics.bpm.barToAudioTime(block.end),
       block.text,
+      block,
     );
   }
 
@@ -322,7 +323,13 @@ export class RenderDataConverter {
     const end = this.lyrics.bpm.barToAudioTime(block.end);
     if (leftPunctuations) {
       ret.push(
-        new LyricsBlockRenderData(start, start, leftPunctuations, colors),
+        new LyricsBlockRenderData(
+          start,
+          start,
+          leftPunctuations,
+          block,
+          colors,
+        ),
       );
     }
     ret.push(
@@ -330,13 +337,16 @@ export class RenderDataConverter {
         start,
         end,
         text,
+        block,
         colors,
         annotations,
         singAlong,
       ),
     );
     if (rightPunctuations) {
-      ret.push(new LyricsBlockRenderData(end, end, rightPunctuations, colors));
+      ret.push(
+        new LyricsBlockRenderData(end, end, rightPunctuations, block, colors),
+      );
     }
     return ret;
   }

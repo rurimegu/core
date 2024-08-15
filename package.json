@@ -13,6 +13,7 @@
   "dependencies": {
     "lodash": "^4.17.21",
     "mobx": "^6.12.3",
+    "wanakana": "^5.3.1",
     "yaml": "^2.4.2",
     "zod": "^3.23.8"
   },

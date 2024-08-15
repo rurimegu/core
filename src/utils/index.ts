@@ -11,3 +11,6 @@ export * from './constants';
 export * from './web';
 export * from './time';
 export * from './block-pos';
+
+// Export libraries
+export * from 'wanakana';

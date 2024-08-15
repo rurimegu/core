@@ -31,6 +31,12 @@ export class LyricsStore implements ISerializable, IDeserializable {
     LyricsBlock.tagsStore = tags;
   }
 
+  public static From(data: LyricsStoreData) {
+    const store = new LyricsStore();
+    store.deserialize(data);
+    return store;
+  }
+
   //#region ISerializable
   public serialize(): LyricsStoreData {
     return {
