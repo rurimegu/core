@@ -34,7 +34,7 @@ export interface IWithSpacing {
   get space(): boolean;
   set space(value: boolean);
 }
-export interface IDispoable {
+export interface IDisposable {
   dispose(): void;
 }
 export function OfType<U>(arr: any[], type: Constructor<U>): U[] {
