@@ -131,7 +131,7 @@ export function HasAllFlag(x: number, flag: number) {
  * @returns True if the array is sorted in ascending order, false otherwise.
  */
 export function IsConsecutive(arr: number[]) {
-  arr.sort();
+  arr.sort((a, b) => a - b);
   for (let i = 1; i < arr.length; i++) {
     if (arr[i] !== arr[i - 1] + 1) {
       return false;
