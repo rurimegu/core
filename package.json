@@ -11,6 +11,7 @@
     "dist"
   ],
   "dependencies": {
+    "get-east-asian-width": "^1.2.0",
     "lodash": "^4.17.21",
     "mobx": "^6.12.3",
     "wanakana": "^5.3.1",
