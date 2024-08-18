@@ -30,7 +30,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/KCFindstr/Megumi-core.git"
+    "url": "git+https://github.com/rurimegu/core.git"
   },
   "keywords": [
     "lyrics",
@@ -51,7 +51,7 @@
     }
   },
   "bugs": {
-    "url": "https://github.com/KCFindstr/Megumi-core/issues"
+    "url": "https://github.com/rurimegu/core/issues"
   },
-  "homepage": "https://github.com/KCFindstr/Megumi-core#readme"
+  "homepage": "https://github.com/rurimegu/core#readme"
 }
