@@ -37,6 +37,9 @@ export interface IWithSpacing {
 export interface IDisposable {
   dispose(): void;
 }
+export interface ILifecycle extends IDisposable {
+  init(): void;
+}
 export function OfType<U>(arr: any[], type: Constructor<U>): U[] {
   return arr.filter((x) => x instanceof type) as U[];
 }
