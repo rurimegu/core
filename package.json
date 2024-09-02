@@ -1,6 +1,6 @@
 {
   "name": "@rurino/core",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "Core utilities for the @rurino project.",
   "scripts": {
     "tsc": "tsc",
@@ -43,11 +43,6 @@
   "author": "KCFindstr",
   "license": "MIT",
   "exports": {
-    "./utils": {
-      "import": "./dist/utils/index.js",
-      "require": "./dist/utils/index.js",
-      "types": "./dist/utils/index.d.ts"
-    },
     ".": {
       "import": "./dist/index.js",
       "require": "./dist/index.js",
