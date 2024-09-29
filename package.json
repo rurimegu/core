@@ -1,6 +1,6 @@
 {
   "name": "@rurino/core",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "Core utilities for the @rurino project.",
   "scripts": {
     "tsc": "tsc",
