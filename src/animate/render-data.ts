@@ -167,11 +167,11 @@ export class LineRenderData<
   }
 
   public override get start() {
-    return this.children[0].start;
+    return this.first?.start ?? 0;
   }
 
   public override get end() {
-    return this.children[this.children.length - 1].end;
+    return this.last?.end ?? 0;
   }
 
   public get first() {
