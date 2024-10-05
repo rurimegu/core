@@ -22,10 +22,10 @@ export type RenderTemplateData = z.infer<
 
 const RenderTemplates = z
   .object({
-    lyricsBlock: RenderTemplateWithDefault('default').default({}),
-    lyricsHint: RenderTemplateWithDefault('default').default({}),
+    callBlock: RenderTemplateWithDefault('Simple').default({}),
+    lyricsBlock: RenderTemplateWithDefault('Gradient').default({}),
+    lyricsHint: RenderTemplateWithDefault('Underline').default({}),
     lyricsColumn: RenderTemplateWithDefault('default').default({}),
-    lyricsLine: RenderTemplateWithDefault('default').default({}),
     metaColumn: RenderTemplateWithDefault('default').default({}),
   })
   .strict();
