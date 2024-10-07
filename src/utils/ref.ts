@@ -9,6 +9,10 @@ import { FutureMap } from './ds';
 export class RefManager {
   protected readonly refs = new Map<string, MRef<any, any>[]>();
 
+  public get(id: string): MRef<any, any>[] {
+    return this.refs.get(id) ?? [];
+  }
+
   public unset(id: string, ref: MRef<any, any>) {
     const refs = this.refs.get(id);
     if (refs) {

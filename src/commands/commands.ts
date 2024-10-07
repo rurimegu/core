@@ -13,6 +13,8 @@ import {
   IWithSpacing,
   NoopFn,
   UndoFunc,
+  IWithId,
+  OfType,
 } from '../utils/types';
 import { TagsStore, LyricsTag } from '../store/tags';
 import {
@@ -20,6 +22,7 @@ import {
   CallBlock,
   CallGroup,
   LyricsBlock,
+  SingAlongBlock,
   TagsGroup,
 } from '../store';
 import { refManager } from '../utils/ref';
@@ -265,41 +268,75 @@ export class SetSimpleBlockCommand extends CommandSet {
 
 export class SetBlockStartCommand extends Command {
   protected prevStart: Timing = Timing.INVALID;
+  protected deleteCmd: Command = Command.Noop();
 
   public constructor(
-    public readonly block: IProviderOrValue<ITimingMutableBlock>,
+    public readonly block: IProviderOrValue<ITimingMutableBlock & IWithId>,
     public readonly start: Timing,
   ) {
     super();
   }
 
   public override execute(): void {
-    this.prevStart = GetValue(this.block).start;
-    GetValue(this.block).start = this.start;
+    const block = GetValue(this.block);
+    this.prevStart = block.start;
+    const refs = refManager.get(block.id);
+    if (block instanceof AnnotationBlock) {
+      refs.push(...refManager.get(block.parent.id));
+    }
+    // Find all references that became invalid after the resize
+    this.deleteCmd = new CommandSet(
+      OfType(
+        refs.map((r) => r.container),
+        SingAlongBlock,
+      )
+        .filter((b) => !b.isResizeValid(this.start, b.end))
+        .map((b) => new RemoveBlocksCommand(b.parent, b)),
+    );
+    this.deleteCmd.execute();
+    block.start = this.start;
   }
 
   public override undo(): void {
     GetValue(this.block).start = this.prevStart;
+    this.deleteCmd.undo();
   }
 }
 
 export class SetBlockEndCommand extends Command {
   protected prevEnd: Timing = Timing.INVALID;
+  protected deleteCmd: Command = Command.Noop();
 
   public constructor(
-    public readonly block: IProviderOrValue<ITimingMutableBlock>,
+    public readonly block: IProviderOrValue<ITimingMutableBlock & IWithId>,
     public readonly end: Timing,
   ) {
     super();
   }
 
   public override execute(): void {
-    this.prevEnd = GetValue(this.block).end;
-    GetValue(this.block).end = this.end;
+    const block = GetValue(this.block);
+    this.prevEnd = block.end;
+    const refs = refManager.get(block.id);
+    if (block instanceof AnnotationBlock) {
+      refs.push(...refManager.get(block.parent.id));
+    }
+    // Find all references that became invalid after the resize
+    this.deleteCmd = new CommandSet(
+      OfType(
+        refs.map((r) => r.container),
+        SingAlongBlock,
+      )
+        .filter((b) => !b.isResizeValid(b.start, this.end))
+        .map((b) => new RemoveBlocksCommand(b.parent, b)),
+    );
+    this.deleteCmd.execute();
+    block.end = this.end;
   }
 
   public override undo(): void {
     GetValue(this.block).end = this.prevEnd;
+    this.deleteCmd.undo();
   }
 }
 

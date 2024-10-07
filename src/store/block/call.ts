@@ -22,6 +22,7 @@ import { MRef, RemoveRefFn, SharedRefGroup } from '../../utils/ref';
 import { LyricsBlock } from './lyrics';
 import { CallsTrack } from './track';
 import { RemoveBlocksCommand, Command } from '../../commands';
+import { BlockPointer } from './pointer';
 
 export enum CallType {
   Hi = 'Hi',
@@ -317,6 +318,21 @@ export class SingAlongBlock extends CallBlockBase implements IWithSpacing {
 
   public override resizeCmd(): IResizeAction {
     throw new UserError('Cannot resize SingAlongBlock');
+  }
+
+  public isResizeValid(newStart: Timing, newEnd: Timing): boolean {
+    const ptr = BlockPointer.FromBlock(this);
+    const prev = ptr.movePrev().block;
+    const next = ptr.moveNext().moveNext().block;
+    if (prev && prev.end.compare(newStart) > 0) {
+      if (!(prev instanceof SingAlongBlock)) return false;
+      if (prev.lyricsBlock?.parent !== this.lyricsBlock?.parent) return false;
+    }
+    if (next && next.start.compare(newEnd) < 0) {
+      if (!(next instanceof SingAlongBlock)) return false;
+      if (next.lyricsBlock?.parent !== this.lyricsBlock?.parent) return false;
+    }
+    return true;
   }
 
   //#region ISerializable

@@ -3,6 +3,7 @@ import { ValueError, InvalidStateError } from '../../utils/error';
 import { Direction } from '../../utils/math';
 import { IClonable } from '../../utils/types';
 import { ParentBlockBase, BlockBase } from './base';
+import { TrackBlockBase } from './track';
 
 export class BlockPointer implements IClonable<BlockPointer> {
   @observable
@@ -99,9 +100,14 @@ export class BlockPointer implements IClonable<BlockPointer> {
     if (this.idx >= this.parent.length) {
       let current = this.parent;
       while (current.parent && current.parent.last === current) {
+        if (current instanceof TrackBlockBase) return this;
         current = current.parent;
       }
-      if (!current.parent || current.parent.last === current) {
+      if (
+        !current.parent ||
+        current.parent.last === current ||
+        current instanceof TrackBlockBase
+      ) {
         // Single layer or reached the end.
         return this;
       }
@@ -135,9 +141,14 @@ export class BlockPointer implements IClonable<BlockPointer> {
     if (this.idx < 0) {
       let current = this.parent;
       while (current.parent && current.parent.first === current) {
+        if (current instanceof TrackBlockBase) return this;
         current = current.parent;
       }
-      if (!current.parent || current.parent.first === current) {
+      if (
+        !current.parent ||
+        current.parent.first === current ||
+        current instanceof TrackBlockBase
+      ) {
         // Single layer or reached the beginning.
         return this;
       }
