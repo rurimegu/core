@@ -1,3 +1,5 @@
+import { Timing } from '../store/range';
+
 export type IProvider<T> = () => T;
 export type IProviderOrValue<T> = T | IProvider<T>;
 export function GetValue<T>(provider: IProviderOrValue<T>): T {
@@ -27,6 +29,9 @@ export interface IWithText {
 }
 export interface IWithBottomText {
   get bottomText(): string;
+}
+export interface IMutableStart {
+  moveStart(newStart: Timing): void;
 }
 export interface IWithSpacing {
   get newline(): boolean;

@@ -17,6 +17,8 @@ import {
   IWithSpacing,
   OfType,
   UniqueBy,
+  IMutableStart,
+  ICopyable,
 } from '../../utils';
 import { MRef, RemoveRefFn, SharedRefGroup } from '../../utils/ref';
 import { LyricsBlock } from './lyrics';
@@ -120,7 +122,10 @@ export abstract class CallBlockBase
   //#endregion ISerializable
 }
 
-export class CallBlock extends CallBlockBase implements IWithSpacing {
+export class CallBlock
+  extends CallBlockBase
+  implements IWithSpacing, IMutableStart, ICopyable<CallBlock>
+{
   public override readonly type: BlockType = BlockType.Call;
 
   @observable
@@ -140,15 +145,6 @@ export class CallBlock extends CallBlockBase implements IWithSpacing {
   public constructor() {
     super();
     makeObservable(this);
-  }
-
-  /** Create a replica of the block at a different start time. */
-  replica(start: Timing): CallBlock {
-    const ret = new CallBlock();
-    ret.start = start;
-    ret.end = start.add(this.end.sub(this.start));
-    ret.text = this.text;
-    return ret;
   }
 
   @computed
@@ -259,6 +255,25 @@ export class CallBlock extends CallBlockBase implements IWithSpacing {
     this.text_ = data.text;
   }
   //#endregion ISerializable
+
+  //#region ICopyable
+  public newCopy(): CallBlock {
+    const ret = new CallBlock();
+    ret.start = this.start;
+    ret.end = this.end;
+    ret.text = this.text;
+    return ret;
+  }
+  //#endregion ICopyable
+
+  //#region IMutableStart
+  @action
+  public moveStart(newStart: Timing) {
+    const delta = newStart.sub(this.start);
+    this.start = newStart;
+    this.end = this.end.add(delta);
+  }
+  //#endregion IMutableStart
 }
 
 export class SingAlongBlock extends CallBlockBase implements IWithSpacing {

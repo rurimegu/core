@@ -94,6 +94,7 @@ export class LyricsTrack
   extends TrackBlockBase<LyricsBlock>
   implements IWithText
 {
+  public override readonly childTypes = [LyricsBlock];
   public readonly type = BlockType.LyricsTrack;
 
   public constructor() {
@@ -108,6 +109,7 @@ export class LyricsTrack
 }
 
 export class CallsTrack extends TrackBlockBase<CallBlockBase> {
+  public override readonly childTypes = [CallBlock];
   public override readonly type = BlockType.CallsTrack;
 
   public constructor() {
@@ -128,6 +130,7 @@ export class CallsTrack extends TrackBlockBase<CallBlockBase> {
 }
 
 export class CommentTrack extends TrackBlockBase<CommentBlock> {
+  public override readonly childTypes = [CommentBlock];
   public override readonly type = BlockType.CommentTrack;
 
   public constructor() {

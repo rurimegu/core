@@ -106,13 +106,21 @@ export function RoundToMultiple(x: number, multiple: number) {
   return Math.round(x / multiple) * multiple;
 }
 
-export function Gcd(a: number, b: number) {
-  while (b !== 0) {
-    const t = b;
-    b = a % b;
-    a = t;
-  }
-  return a;
+export function Gcd(...args: number[]) {
+  if (args.length === 0) return 0;
+  return args.reduce((a, b) => {
+    while (b !== 0) {
+      const t = b;
+      b = a % b;
+      a = t;
+    }
+    return a;
+  });
+}
+
+export function Lcm(...args: number[]) {
+  if (args.length === 0) return 0;
+  return args.reduce((a, b) => (a * b) / Gcd(a, b));
 }
 
 export function HasAnyFlag(x: number, flag: number) {

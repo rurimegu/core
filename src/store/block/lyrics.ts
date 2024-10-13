@@ -10,6 +10,7 @@ import { Timing } from '../range';
 import { DataError } from '../../utils/error';
 import {
   ICopyable,
+  IMutableStart,
   IWithBottomText,
   IWithSpacing,
   IWithText,
@@ -42,8 +43,10 @@ export class LyricsBlock
     IMergable<LyricsBlock>,
     IWithTags,
     IWithSpacing,
-    IWithBottomText
+    IWithBottomText,
+    IMutableStart
 {
+  public override readonly childTypes = [AnnotationBlock];
   public override readonly type = BlockType.Lyrics;
 
   public static tagsStore: TagsStore;
@@ -224,4 +227,12 @@ export class LyricsBlock
     else this.tags.clear();
   }
   //#endregion ISerializable
+
+  //#region IMutableStart
+  @action
+  public moveStart(newStart: Timing) {
+    const delta = newStart.sub(this.start);
+    this.children.forEach((a) => a.moveStart(a.start.add(delta)));
+  }
+  //#endregion IMutableStart
 }

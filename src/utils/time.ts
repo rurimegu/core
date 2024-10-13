@@ -92,3 +92,7 @@ export class SmoothTimer {
     }
   }
 }
+
+export function validDivsFor(divList: number[], ...divs: number[]) {
+  return divList.filter((d) => divs.every((t) => t % d === 0 || d % t === 0));
+}

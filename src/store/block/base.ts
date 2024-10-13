@@ -47,7 +47,7 @@ export interface ITimingMutableBlock {
 
 export interface BlockData {
   type: BlockType;
-  id: string;
+  id?: string;
   parent?: string;
 }
 
@@ -146,7 +146,7 @@ export abstract class BlockBase
 
   @action
   public deserialize(data: BlockData & BlockDataHelpers) {
-    this.id_ = data.id;
+    if (data.id) this.id_ = data.id;
     if (data.parent) {
       data.context.runWhenReady(data.parent, (parent) => {
         this.setParent(parent as ParentBlockBase<BlockBase>);
@@ -173,6 +173,8 @@ export abstract class ParentBlockBase<T extends BlockBase>
   extends BlockBase
   implements Iterable<T>
 {
+  abstract readonly childTypes: Constructor<T>[];
+
   @observable
   protected children_ = observable.array<T>([], { deep: false });
 

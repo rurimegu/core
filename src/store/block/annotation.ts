@@ -1,9 +1,16 @@
-import { makeObservable, observable, override, runInAction } from 'mobx';
+import {
+  action,
+  makeObservable,
+  observable,
+  override,
+  runInAction,
+} from 'mobx';
 import { Timing } from '../range';
 import { SplitLyrics, SplitLyricsArray } from '../../utils/string';
 import {
   IClonable,
   ICopyable,
+  IMutableStart,
   IWithBottomText,
   IWithText,
 } from '../../utils/types';
@@ -37,7 +44,8 @@ export class AnnotationBlock
     IMergable<AnnotationBlock>,
     ITimingMutableBlock,
     IWithText,
-    IWithBottomText
+    IWithBottomText,
+    IMutableStart
 {
   public override readonly type = BlockType.Annotation;
 
@@ -147,6 +155,15 @@ export class AnnotationBlock
     this.text = data.text;
     this.start = Timing.Deserialize(data.start);
     this.end = Timing.Deserialize(data.end);
+  }
+  //#endregion
+
+  //#region IMutableStart
+  @action
+  public moveStart(newStart: Timing) {
+    const delta = newStart.sub(this.start);
+    this.start = this.start.add(delta);
+    this.end = this.end.add(delta);
   }
   //#endregion
 

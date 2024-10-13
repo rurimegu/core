@@ -21,6 +21,8 @@ export interface LyricsStoreData {
 export class LyricsStore implements ISerializable, IDeserializable {
   public static readonly VERSION = 1;
 
+  public context?: FutureMap;
+
   public constructor(
     public readonly tracks = new Tracks(),
     public readonly bpm = new BpmStore(),
@@ -57,6 +59,7 @@ export class LyricsStore implements ISerializable, IDeserializable {
       );
     }
     const context = new FutureMap();
+    this.context = context;
     runInAction(() => {
       if (data.tracks) DeserializeBlock(this.tracks, data.tracks, context);
       else this.tracks.clear();

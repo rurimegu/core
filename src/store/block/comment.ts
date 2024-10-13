@@ -1,4 +1,4 @@
-import { makeObservable, observable, override } from 'mobx';
+import { action, makeObservable, observable, override } from 'mobx';
 import {
   BlockBase,
   BlockDataHelpers,
@@ -8,7 +8,12 @@ import {
   ResizeBlockCmd,
 } from './base';
 import { CommentTrack } from './track';
-import { IWithBottomText, IWithText } from '../../utils';
+import {
+  ICopyable,
+  IMutableStart,
+  IWithBottomText,
+  IWithText,
+} from '../../utils';
 import { Timing } from '../range';
 
 interface CommentBlockData extends BlockDataWithText {
@@ -18,7 +23,7 @@ interface CommentBlockData extends BlockDataWithText {
 
 export class CommentBlock
   extends BlockBase
-  implements IWithText, IWithBottomText
+  implements IWithText, IWithBottomText, IMutableStart, ICopyable<CommentBlock>
 {
   public override readonly type = BlockType.Comment;
 
@@ -81,4 +86,23 @@ export class CommentBlock
     this.end = Timing.Deserialize(data.end);
   }
   //#endregion ISerializable
+
+  //#region IMutableStart
+  @action
+  public moveStart(newStart: Timing) {
+    const delta = newStart.sub(this.start);
+    this.start = this.start.add(delta);
+    this.end = this.end.add(delta);
+  }
+  //#endregion
+
+  //#region ICopyable
+  public newCopy(): CommentBlock {
+    const ret = new CommentBlock();
+    ret.start = this.start;
+    ret.end = this.end;
+    ret.text = this.text;
+    return ret;
+  }
+  //#endregion ICopyable
 }
