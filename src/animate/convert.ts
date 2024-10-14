@@ -669,6 +669,9 @@ export class RenderDataConverter {
   //#endregion Metadata converters
 
   public convert(duration: number): LyricsRenderData {
+    OfType(this.lyrics.tracks.children, CallsTrack).forEach((x) =>
+      this.preprocessCallsTrack(x),
+    );
     const comments = this.convertCommentTracks(
       OfType(this.lyrics.tracks.children, CommentTrack),
     );
