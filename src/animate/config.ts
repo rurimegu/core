@@ -24,6 +24,7 @@ const RenderTemplates = z
   .object({
     callBlock: RenderTemplateWithDefault('Simple').default({}),
     lyricsBlock: RenderTemplateWithDefault('Gradient').default({}),
+    lyricsPara: RenderTemplateWithDefault('Simple').default({}),
     lyricsHint: RenderTemplateWithDefault('Underline').default({}),
     lyricsColumn: RenderTemplateWithDefault('default').default({}),
     metaColumn: RenderTemplateWithDefault('default').default({}),
