@@ -1,6 +1,7 @@
 import { ValueError } from './error';
 import { ISerializable } from './io';
 import { Clamp01 } from './math';
+import { rgb, hsl } from 'color-convert';
 
 export function Identity<T>(x: T): T {
   return x;
@@ -139,6 +140,20 @@ export function LerpColorUnclamped(a: Color, b: Color, t: number): Color {
     Math.round(a.g + (b.g - a.g) * t),
     Math.round(a.b + (b.b - a.b) * t),
   );
+}
+
+export function LightColor(c: Color, minBrightness = 0): Color {
+  const hslValue = rgb.hsl([c.r, c.g, c.b]);
+  hslValue[2] = Math.max(hslValue[2], minBrightness * 100);
+  const rgbValue = hsl.rgb(hslValue);
+  return new Color(...rgbValue);
+}
+
+export function DimColor(c: Color, maxBrightness = 1): Color {
+  const hslValue = rgb.hsl([c.r, c.g, c.b]);
+  hslValue[2] = Math.min(hslValue[2], maxBrightness * 100);
+  const rgbValue = hsl.rgb(hslValue);
+  return new Color(...rgbValue);
 }
 
 export function DeepEquals<T>(a: T, b: T): boolean {
