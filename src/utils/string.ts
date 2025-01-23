@@ -1,7 +1,7 @@
 import { eastAsianWidth } from 'get-east-asian-width';
 import { LYRICS_SEP } from './constants';
 
-const PUNCTUATIONS = ['ー', '→', '-', '☆'];
+const PUNCTUATIONS = ['ー', '→', '-', '☆', '♪', '♡'];
 const JPN_SMALL = 'ぁぃぅぇぉっゃゅょァィゥェォッャュョ';
 
 export function FormatTime(time: number, precision = 0) {

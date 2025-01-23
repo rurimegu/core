@@ -7,7 +7,7 @@ export interface LyricsMetadataData {
   series: string;
   lyricist: string;
   composer: string;
-  coverImagePath: string;
+  coverImageUrl: string;
 }
 
 export class LyricsMetadata
@@ -29,7 +29,7 @@ export class LyricsMetadata
   public composer = '';
 
   @observable
-  public coverImagePath = '';
+  public coverImageUrl = '';
 
   public constructor() {
     makeObservable(this);
@@ -61,8 +61,8 @@ export class LyricsMetadata
   }
 
   @action
-  public setCoverImagePath(path: string) {
-    this.coverImagePath = path;
+  public setCoverImageUrl(url: string) {
+    this.coverImageUrl = url;
   }
 
   @action
@@ -96,7 +96,7 @@ export class LyricsMetadata
       series: this.series,
       lyricist: this.lyricist,
       composer: this.composer,
-      coverImagePath: this.coverImagePath,
+      coverImageUrl: this.coverImageUrl,
     };
   }
 
@@ -106,7 +106,7 @@ export class LyricsMetadata
     this.series = data.series ?? '';
     this.lyricist = data.lyricist ?? '';
     this.composer = data.composer ?? '';
-    this.coverImagePath = data.coverImagePath ?? '';
+    this.coverImageUrl = data.coverImageUrl ?? '';
   }
   //#endregion
 }
