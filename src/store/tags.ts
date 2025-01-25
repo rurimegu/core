@@ -1,14 +1,8 @@
-import {
-  action,
-  computed,
-  makeObservable,
-  observable,
-  runInAction,
-} from 'mobx';
+import { action, computed, makeObservable, observable } from 'mobx';
 import { ISerializable } from '../utils/io';
 import { IClonable } from '../utils/types';
 import { Color } from '../utils/algo';
-import { FutureMap, RangeArray } from '../utils';
+import { FutureMap } from '../utils';
 import { UniqueRefGroup } from '../utils/ref';
 import { persistStore } from './persist';
 
@@ -79,29 +73,6 @@ export class TagsStore implements ISerializable {
 
   public constructor() {
     makeObservable(this);
-    // TODO: Remove
-    const tags = RangeArray(9).map(() => new LyricsTag());
-    runInAction(() => {
-      tags[0].name = '乙宗梢';
-      tags[0].color = Color.FromHex('#68BE8D')!;
-      tags[1].name = '日野下花帆';
-      tags[1].color = Color.FromHex('#F8B500')!;
-      tags[2].name = '百世吟子';
-      tags[2].color = Color.FromHex('#A2D7DD')!;
-      tags[3].name = '夕霧綴理';
-      tags[3].color = Color.FromHex('#C22D3B')!;
-      tags[4].name = '村野さやか';
-      tags[4].color = Color.FromHex('#5383C3')!;
-      tags[5].name = '徒町小鈴';
-      tags[5].color = Color.FromHex('#FAD764')!;
-      tags[6].name = '藤島慈';
-      tags[6].color = Color.FromHex('#C8C2C6')!;
-      tags[7].name = '大沢瑠璃乃';
-      tags[7].color = Color.FromHex('#E7609E')!;
-      tags[8].name = '安養寺姫芽';
-      tags[8].color = Color.FromHex('#9D8DE2')!;
-      this.replaceTags(tags);
-    });
   }
 
   @action
