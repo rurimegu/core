@@ -13,6 +13,7 @@ export const RenderTemplateWithDefault = (defaultType: string) =>
   z
     .object({
       type: z.string().default(defaultType),
+      className: z.string().optional(),
       options: z.record(z.string().max(128), z.any()).default({}),
     })
     .strict();
